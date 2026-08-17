@@ -4,9 +4,9 @@ owner: tech-lead
 last_updated: 2026-08-17
 ---
 
-# Estratégia de Testes — Feature 005
+# Estratégia de Testes — Feature Backend 001
 
-Esta feature é predominantemente off-chain (backend/frontend); não usa Foundry diretamente, mas depende dos contratos das features `001` a `004` já testados. A estratégia aqui cobre a camada de integração.
+Esta feature é 100% off-chain (backend); não usa Foundry diretamente, mas depende dos contratos das features `001` a `004` já testados. A estratégia aqui cobre a camada de integração backend ↔ contratos. Testes da camada de interface ficam em `specs-frontend/features/001-interface-investidor/test-strategy.md`.
 
 ## Testes de integração backend ↔ contratos
 - Backend consegue assinar e enviar `comprarCotas` em nome de uma carteira custodial e refletir o resultado no portfólio.
@@ -19,7 +19,7 @@ Esta feature é predominantemente off-chain (backend/frontend); não usa Foundry
 
 ## Testes de segurança específicos da camada off-chain
 - Dados de PII nunca trafegam em payload de transação on-chain (verificação de que apenas endereços/claims categóricas são enviados aos contratos).
-- Controle de acesso do painel do gestor (RF-25) — apenas usuários com papel de admin acessam funções que acionam `PropertyFactory`/`DividendDistributor`.
+- Controle de acesso dos endpoints administrativos (RF-25) — apenas usuários com papel de admin acessam funções que acionam `PropertyFactory`/`DividendDistributor`.
 
 ## Critério de saída
 Todos os cenários de `spec.md` cobertos por teste de integração ou end-to-end; nenhuma PII identificada em payloads on-chain durante os testes.

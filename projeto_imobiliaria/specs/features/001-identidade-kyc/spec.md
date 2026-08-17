@@ -43,6 +43,6 @@ Garantir que somente carteiras com identidade verificada possam receber, manter 
 | Remoção de Trusted Issuer | Um Trusted Issuer é removido pelo administrador | Claims previamente emitidas por ele já registradas | Claims existentes continuam válidas (não retroage) até revisão manual; novas claims desse issuer passam a ser rejeitadas |
 
 ## Fora de escopo desta feature
-- UI de upload de documentos (feature `005-plataforma-investidor`).
+- UI de upload de documentos (`specs-backend/features/001-plataforma-investidor`).
 - Escolha/contratação do provedor de KYC comercial (decisão de negócio, fora do pacote técnico).
 - Verificação de investidor qualificado/sofisticado para fins de enquadramento CVM (pode virar uma claim adicional futura, ex.: `INVESTIDOR_QUALIFICADO`).

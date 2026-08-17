@@ -29,5 +29,5 @@ Motivos:
 
 ## Consequências
 - Positivas: ciclo TDD mais curto e natural; cobertura de segurança maior via fuzz/invariant testing desde o primeiro contrato.
-- Negativas / trade-offs aceitos: scripts de deploy/integração com a plataforma (off-chain) podem ainda precisar de ferramentas JS/TS (ex.: ethers.js/viem) na feature `005-plataforma-investidor` — Foundry cobre o lado dos contratos, não substitui o backend da plataforma.
+- Negativas / trade-offs aceitos: scripts de deploy/integração com a plataforma (off-chain) podem ainda precisar de ferramentas JS/TS (ex.: ethers.js/viem) em `specs-backend/features/001-plataforma-investidor` — Foundry cobre o lado dos contratos, não substitui o backend da plataforma.
 - Impacto em specs de feature relacionadas: todo `test-strategy.md` de feature on-chain (`001` a `004`) referencia comandos e convenções Foundry.

@@ -14,7 +14,7 @@ O passo 1 da jornada do investidor (slide 4) exige cadastro e confirmação de i
 ## Decisão
 - **Off-chain**: coleta de documentos, CPF, selfie, e a decisão de aprovação/reprovação de KYC são feitas por um provedor terceiro de KYC (a contratar), fora da blockchain.
 - **On-chain**: apenas o resultado da verificação é registrado, como uma **claim** assinada pelo provedor (atuando como Trusted Issuer) no `IdentityRegistry` — por exemplo: `claim: KYC_APPROVED`, `claim: PAIS=BR`, `claim: TIPO_INVESTIDOR=PESSOA_FISICA`. Nenhum CPF, nome ou documento é gravado em nenhum contrato.
-- A plataforma (feature 005) guarda os dados pessoais em seu banco de dados off-chain (sujeito à LGPD), associados à carteira custodial do investidor, mas essa associação não é pública on-chain além do necessário para o Compliance funcionar.
+- A plataforma (`specs-backend/features/001-plataforma-investidor`) guarda os dados pessoais em seu banco de dados off-chain (sujeito à LGPD), associados à carteira custodial do investidor, mas essa associação não é pública on-chain além do necessário para o Compliance funcionar.
 
 ## Alternativas consideradas
 | Alternativa | Prós | Contras | Motivo da rejeição |
@@ -26,4 +26,4 @@ O passo 1 da jornada do investidor (slide 4) exige cadastro e confirmação de i
 ## Consequências
 - Positivas: compliance com LGPD; compliance on-chain auditável sem expor dados pessoais; alinhado ao desenho nativo do ERC-3643 (Identity Registry + Trusted Issuers + Claims).
 - Negativas / trade-offs aceitos: confiança depositada no provedor de KYC como Trusted Issuer — se comprometido, pode emitir claims falsas. Mitigação: contrato com provedor estabelecido, chave do Trusted Issuer em hardware wallet/multisig.
-- Impacto em specs de feature relacionadas: `001-identidade-kyc` (spec completa do fluxo), `005-plataforma-investidor` (armazenamento de PII off-chain, LGPD).
+- Impacto em specs de feature relacionadas: `specs/features/001-identidade-kyc` (spec completa do fluxo), `specs-backend/features/001-plataforma-investidor` (armazenamento de PII off-chain, LGPD).

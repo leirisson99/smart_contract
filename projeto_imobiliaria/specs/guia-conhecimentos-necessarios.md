@@ -24,7 +24,7 @@ Um banco de dados replicado em milhares de computadores (nós), onde nenhuma ent
 
 ### 2. Carteira digital (wallet) e chave privada 🟢
 Uma carteira é um par de chaves criptográficas: a chave privada assina transações (prova que você é o dono), o endereço público é como uma "conta" visível a todos. Quem controla a chave privada controla os ativos.
-**Por que precisa:** o pitch promete "carteira criada automaticamente — sem conhecimento técnico" (slide 4). Isso só é possível porque a plataforma usa **carteiras custodiais** (a plataforma guarda a chave em nome do investidor) — decisão registrada como non-goal explícito da POC em [`specs/00-constitution.md`](00-constitution.md) e detalhada em `RNF-11` de [`specs/features/005-plataforma-investidor/spec.md`](features/005-plataforma-investidor/spec.md). Entender a diferença entre custodial e não-custodial é necessário para avaliar o risco operacional de quem guarda essas chaves.
+**Por que precisa:** o pitch promete "carteira criada automaticamente — sem conhecimento técnico" (slide 4). Isso só é possível porque a plataforma usa **carteiras custodiais** (a plataforma guarda a chave em nome do investidor) — decisão registrada como non-goal explícito da POC em [`specs/00-constitution.md`](00-constitution.md) e detalhada em `RNF-11` de [`specs-backend/features/001-plataforma-investidor/spec.md`](../specs-backend/features/001-plataforma-investidor/spec.md). Entender a diferença entre custodial e não-custodial é necessário para avaliar o risco operacional de quem guarda essas chaves.
 
 ### 3. Transação e gas 🟢
 Toda ação que muda o estado da blockchain (transferir um token, criar um contrato) é uma "transação", que precisa pagar uma taxa chamada "gas" — o preço de usar a capacidade computacional da rede.
@@ -138,7 +138,7 @@ Lei brasileira que regula como dados pessoais podem ser coletados, armazenados e
 
 ### 24. Custódia (custodial vs. não-custodial) 🟢
 Custodial = a plataforma guarda as chaves privadas em nome do usuário (mais simples para quem não entende cripto, mas concentra responsabilidade e risco na plataforma). Não-custodial = o próprio usuário guarda suas chaves (mais controle, mais responsabilidade e complexidade para ele).
-**Por que precisa:** o projeto escolheu o modelo custodial para atender a promessa de "sem conhecimento técnico" (slide 4) — isso significa que a segurança da guarda de chaves da própria plataforma se torna um risco operacional crítico que você precisa cobrar (RNF-11 em [`specs/features/005-plataforma-investidor/spec.md`](features/005-plataforma-investidor/spec.md)).
+**Por que precisa:** o projeto escolheu o modelo custodial para atender a promessa de "sem conhecimento técnico" (slide 4) — isso significa que a segurança da guarda de chaves da própria plataforma se torna um risco operacional crítico que você precisa cobrar (RNF-11 em [`specs-backend/features/001-plataforma-investidor/spec.md`](../specs-backend/features/001-plataforma-investidor/spec.md)).
 
 ### 25. Liquidez e mercado secundário 🟢
 Liquidez é a facilidade de converter um ativo em dinheiro rapidamente. Mercado secundário é onde investidores compram/vendem entre si (diferente da compra direta do emissor, que é o mercado primário).

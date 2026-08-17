@@ -1,6 +1,6 @@
 # Tokenização Imobiliária — Índice do Pacote de Especificações
 
-> Documento-índice. Conteúdo técnico substantivo vive em `specs/` — este arquivo só navega e reporta status.
+> Documento-índice. Conteúdo técnico substantivo vive em `specs/` (smart contracts / on-chain), `specs-backend/` (API e serviços off-chain) e `specs-frontend/` (interface) — este arquivo só navega e reporta status.
 
 ## Sumário executivo
 
@@ -29,7 +29,7 @@ Este pacote de especificações segue **Spec-Driven Development (SDD)** — toda
 | [ADR-0005](specs/decisions/ADR-0005-estrategia-upgradability.md) | Upgradability: contratos imutáveis por imóvel | approved |
 | [ADR-0006](specs/decisions/ADR-0006-fronteira-onchain-offchain-kyc.md) | Fronteira on-chain/off-chain do KYC | approved |
 
-### Features
+### Features — Smart Contract (`specs/features/`)
 
 | Feature | Descrição | Contratos | Status |
 |---|---|---|---|
@@ -37,17 +37,34 @@ Este pacote de especificações segue **Spec-Driven Development (SDD)** — toda
 | [002-tokenizacao-imovel](specs/features/002-tokenizacao-imovel/spec.md) | Emissão de cotas do imóvel | `PropertyToken`, `PropertyFactory` | draft |
 | [003-distribuicao-rendimentos](specs/features/003-distribuicao-rendimentos/spec.md) | Distribuição mensal de aluguel | `DividendDistributor` | draft |
 | [004-mercado-secundario](specs/features/004-mercado-secundario/spec.md) | Negociação de cotas entre investidores | `Marketplace` | draft |
-| [005-plataforma-investidor](specs/features/005-plataforma-investidor/spec.md) | UX off-chain (onboarding, portfólio, painel do gestor) | — (off-chain) | draft |
 
-Cada feature contém: `spec.md` (requisitos + cenários de aceite), `plan.md` (arquitetura), `contracts/*.md` (specs de contrato quando aplicável), `test-strategy.md` (estratégia TDD), `risks.md` (riscos específicos) e `tasks.md` (checklist de execução).
+Cada feature contém: `spec.md` (requisitos + cenários de aceite), `plan.md` (arquitetura), `contracts/*.md` (specs de contrato), `test-strategy.md` (estratégia TDD com Foundry — ADR-0003), `risks.md` (riscos específicos) e `tasks.md` (checklist de execução).
+
+### Features — Backend (`specs-backend/features/`)
+
+Pacote separado para specs de API e serviços off-chain (custódia, onboarding de KYC, assinatura de transações em nome do investidor, jobs, armazenamento de PII). Não segue TDD com Foundry — sua própria `test-strategy.md` cobre testes de integração/end-to-end da camada off-chain. É a única camada off-chain que fala diretamente com os contratos.
+
+| Feature | Descrição | Depende de (on-chain) | Status |
+|---|---|---|---|
+| [001-plataforma-investidor](specs-backend/features/001-plataforma-investidor/spec.md) | API e serviços (onboarding, custódia, execução de transações, painel administrativo) | 001, 002, 003, 004 | draft |
+
+### Features — Frontend (`specs-frontend/features/`)
+
+Pacote separado para specs de interface (telas, estados, interações). Nunca acessa contratos diretamente — consome exclusivamente a API descrita em `specs-backend/`.
+
+| Feature | Descrição | Depende de | Status |
+|---|---|---|---|
+| [001-interface-investidor](specs-frontend/features/001-interface-investidor/spec.md) | Telas de cadastro/KYC, imóvel, portfólio, painel do gestor, mercado secundário | `specs-backend/features/001-plataforma-investidor` | draft |
+
+Cada feature (backend ou frontend) contém: `spec.md`, `plan.md`, `integration.md` (mapa de dependências com a camada anterior), `test-strategy.md` e `tasks.md`.
 
 ## Roadmap resumido
 
 | Semanas | Fase | Detalhe |
 |---|---|---|
 | 1-4 | Fundação Jurídica | SPE, enquadramento CVM 588, advogado cripto |
-| 3-6 | Smart Contract | Todas as features on-chain (001-004), TDD completo, auditoria |
-| 5-10 | Plataforma Digital | Feature 005 |
+| 3-6 | Smart Contract | Todas as features de `specs/features/` (001-004), TDD completo, auditoria |
+| 5-10 | Plataforma Digital | `specs-backend/features/001-plataforma-investidor` + `specs-frontend/features/001-interface-investidor` |
 | 9-16 | Operação Piloto | 1 imóvel, 20 investidores, 2 ciclos de aluguel |
 
 Detalhe completo e tracker de perguntas em aberto: [`specs/roadmap.md`](specs/roadmap.md).
@@ -58,3 +75,5 @@ Detalhe completo e tracker de perguntas em aberto: [`specs/roadmap.md`](specs/ro
 |---|---|
 | 2026-08-17 | Criação do pacote inicial de especificações (constituição, ADRs, 5 features, roadmap, checklist de segurança) a partir do pitch `tokenizacao-imobiliaria-poc.pptx`. |
 | 2026-08-17 | Adição do guia de conhecimentos necessários para acompanhar o projeto. |
+| 2026-08-17 | Separação das specs de backend/plataforma em `specs-backend/` (antiga feature `005-plataforma-investidor` de `specs/` virou `specs-backend/features/001-plataforma-investidor`). |
+| 2026-08-17 | Separação das specs de frontend em `specs-frontend/` — requisitos de UI (RF-27 a RF-32) extraídos de `specs-backend/features/001-plataforma-investidor` para `specs-frontend/features/001-interface-investidor`; backend mantém RF-21 a RF-26 reescritos como API/serviço. |

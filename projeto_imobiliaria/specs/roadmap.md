@@ -35,7 +35,8 @@ Mapeamento entre o pacote de especificações e as 4 fases do roadmap apresentad
 ## Fase 3 — Plataforma Digital (Semanas 5-10)
 
 **Specs que precisam estar `approved` antes de iniciar:**
-- `specs/features/005-plataforma-investidor/spec.md`, `plan.md`, `integration.md`
+- `specs-backend/features/001-plataforma-investidor/spec.md`, `plan.md`, `integration.md`
+- `specs-frontend/features/001-interface-investidor/spec.md`, `plan.md`, `integration.md`
 
 **Entregas da fase:** onboarding + KYC integrado ao `IdentityRegistry` on-chain, tela do imóvel (rendimento estimado, cotas disponíveis), portfólio do investidor, painel do gestor/administrador da SPE.
 
@@ -65,7 +66,7 @@ Estas perguntas foram levantadas no pitch como pontos a validar com investidores
 | Qual o orçamento disponível para os 4 meses? | Todas as fases (dimensionamento de equipe) | pendente | — |
 | Já há 20 investidores qualificados mapeados? | Fase 4 (semana 9) | pendente | — |
 | Existe equipe técnica interna ou precisamos contratar? | Fase 2 (semana 3) | pendente | — |
-| O objetivo é plataforma própria ou licenciar? | Escopo de `005-plataforma-investidor` pós-POC | pendente | — |
+| O objetivo é plataforma própria ou licenciar? | Escopo de `specs-backend/features/001-plataforma-investidor` pós-POC | pendente | — |
 | Há interesse em outros imóveis após a POC? | Dimensionamento da `PropertyFactory` pós-POC | pendente | — |
 | Qual o tamanho de carteira imaginado em 3 anos? | Planejamento de capacidade pós-POC | pendente | — |
 
