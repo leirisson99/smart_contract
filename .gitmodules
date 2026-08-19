@@ -1,0 +1,6 @@
+[submodule "projeto_imobiliaria/lib/forge-std"]
+	path = projeto_imobiliaria/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "projeto_imobiliaria/lib/openzeppelin-contracts"]
+	path = projeto_imobiliaria/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts

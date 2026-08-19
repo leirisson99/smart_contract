@@ -1,5 +1,5 @@
 ---
-status: not-started
+status: in-progress
 owner: tech-lead
 last_updated: 2026-08-19
 ---
@@ -12,11 +12,11 @@ Preparar o ambiente de desenvolvimento Solidity e entregar `IdentityRegistry` + 
 ## Backlog
 
 **Setup do projeto (novo, não estava em nenhum `tasks.md` de feature):**
-- [ ] Inicializar projeto Foundry (`forge init`), estrutura de pastas `src/`, `test/`, `script/`.
-- [ ] Instalar dependências: OpenZeppelin Contracts (`AccessControl`, `Pausable`, `ReentrancyGuard` — ver ADR-0003).
-- [ ] Configurar `foundry.toml` (versão do compilador Solidity ≥0.8, otimizador, remappings).
-- [ ] Configurar RPC e conta de deploy para a testnet Polygon Amoy (ADR-0002) — obter MATIC de teste via faucet.
-- [ ] Configurar CI para rodar `forge test` e `forge coverage` a cada push.
+- [x] Inicializar projeto Foundry (`forge init`), estrutura de pastas `src/`, `test/`, `script/`.
+- [x] Instalar dependências: OpenZeppelin Contracts (`AccessControl`, `Pausable`, `ReentrancyGuard` — ver ADR-0003).
+- [x] Configurar `foundry.toml` (versão do compilador Solidity ≥0.8, otimizador, remappings).
+- [ ] Configurar RPC e conta de deploy para a testnet Polygon Amoy (ADR-0002) — obter MATIC de teste via faucet. (`.env.example` criado com `POLYGON_AMOY_RPC_URL`/`PRIVATE_KEY`; falta preencher `.env` com conta real e fazer faucet.)
+- [x] Configurar CI para rodar `forge test` e `forge coverage` a cada push.
 
 **Feature `001-identidade-kyc`** (backlog completo em [`specs/features/001-identidade-kyc/tasks.md`](../specs/features/001-identidade-kyc/tasks.md)):
 - [ ] Selecionar/contratar provedor de KYC (decisão de negócio — pode ficar como placeholder/mock nesta sprint se ainda não estiver fechado; não bloqueia o código, só a integração real do item final).
