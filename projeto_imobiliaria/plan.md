@@ -16,7 +16,9 @@ Este pacote de especificações segue **Spec-Driven Development (SDD)** — toda
 | [`specs/glossary.md`](specs/glossary.md) | Termos técnicos e regulatórios | approved |
 | [`specs/roadmap.md`](specs/roadmap.md) | Specs × 16 semanas da POC + tracker de perguntas em aberto (pitch, slide 8) | approved |
 | [`specs/security-checklist.md`](specs/security-checklist.md) | Checklist consolidado pré-auditoria (SEC-01 a SEC-12) | draft |
-| [`specs/guia-conhecimentos-necessarios.md`](specs/guia-conhecimentos-necessarios.md) | O que você precisa saber para acompanhar o projeto, e por quê | approved |
+| [`specs/guia-conhecimentos-tecnicos.md`](specs/guia-conhecimentos-tecnicos.md) | O que você precisa saber (técnico: blockchain, tokens, segurança, metodologia) para acompanhar o projeto | approved |
+| [`specs/guia-conhecimentos-nao-tecnicos.md`](specs/guia-conhecimentos-nao-tecnicos.md) | O que você precisa saber (não técnico: regulação, compliance, negócio) para acompanhar o projeto | approved |
+| [`specs/guia-conhecimentos-solidity.md`](specs/guia-conhecimentos-solidity.md) | O que você precisa saber (linguagem Solidity, EVM, OpenZeppelin, Foundry) para implementar os contratos | approved |
 
 ### Decisões arquiteturais (ADRs)
 
