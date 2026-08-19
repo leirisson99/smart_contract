@@ -19,6 +19,7 @@ Este pacote de especificações segue **Spec-Driven Development (SDD)** — toda
 | [`specs/guia-conhecimentos-tecnicos.md`](specs/guia-conhecimentos-tecnicos.md) | O que você precisa saber (técnico: blockchain, tokens, segurança, metodologia) para acompanhar o projeto | approved |
 | [`specs/guia-conhecimentos-nao-tecnicos.md`](specs/guia-conhecimentos-nao-tecnicos.md) | O que você precisa saber (não técnico: regulação, compliance, negócio) para acompanhar o projeto | approved |
 | [`specs/guia-conhecimentos-solidity.md`](specs/guia-conhecimentos-solidity.md) | O que você precisa saber (linguagem Solidity, EVM, OpenZeppelin, Foundry) para implementar os contratos | approved |
+| [`sprints/00-visao-geral.md`](sprints/00-visao-geral.md) | Sprints de execução — atualmente só a trilha de Smart Contract | approved |
 
 ### Decisões arquiteturais (ADRs)
 
@@ -69,7 +70,7 @@ Cada feature (backend ou frontend) contém: `spec.md`, `plan.md`, `integration.m
 | 5-10 | Plataforma Digital | `specs-backend/features/001-plataforma-investidor` + `specs-frontend/features/001-interface-investidor` |
 | 9-16 | Operação Piloto | 1 imóvel, 20 investidores, 2 ciclos de aluguel |
 
-Detalhe completo e tracker de perguntas em aberto: [`specs/roadmap.md`](specs/roadmap.md).
+Detalhe completo e tracker de perguntas em aberto: [`specs/roadmap.md`](specs/roadmap.md). Quebra em sprints (hoje só a trilha de Smart Contract): [`sprints/00-visao-geral.md`](sprints/00-visao-geral.md).
 
 ## Changelog
 
@@ -79,3 +80,4 @@ Detalhe completo e tracker de perguntas em aberto: [`specs/roadmap.md`](specs/ro
 | 2026-08-17 | Adição do guia de conhecimentos necessários para acompanhar o projeto. |
 | 2026-08-17 | Separação das specs de backend/plataforma em `specs-backend/` (antiga feature `005-plataforma-investidor` de `specs/` virou `specs-backend/features/001-plataforma-investidor`). |
 | 2026-08-17 | Separação das specs de frontend em `specs-frontend/` — requisitos de UI (RF-27 a RF-32) extraídos de `specs-backend/features/001-plataforma-investidor` para `specs-frontend/features/001-interface-investidor`; backend mantém RF-21 a RF-26 reescritos como API/serviço. |
+| 2026-08-19 | Criação de `sprints/` com a quebra em sprints da trilha de Smart Contract (features `001` a `004` de `specs/features/`) — foco definido para ser o primeiro a entrar em execução, antes de backend/frontend/jurídico. |

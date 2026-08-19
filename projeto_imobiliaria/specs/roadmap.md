@@ -32,6 +32,8 @@ Mapeamento entre o pacote de especificações e as 4 fases do roadmap apresentad
 
 **Marco de saída:** contratos auditados, deployados em testnet Polygon (Amoy), prontos para integração com a plataforma.
 
+**Quebra em sprints:** esta fase é a primeira a entrar em execução e está detalhada em [`sprints/00-visao-geral.md`](../sprints/00-visao-geral.md) (Sprints 1-4).
+
 ## Fase 3 — Plataforma Digital (Semanas 5-10)
 
 **Specs que precisam estar `approved` antes de iniciar:**
