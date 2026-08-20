@@ -1,7 +1,7 @@
 ---
 status: draft
 owner: tech-lead
-last_updated: 2026-08-17
+last_updated: 2026-08-20
 ---
 
 # Checklist de Segurança Pré-Auditoria
@@ -19,7 +19,7 @@ Consolida os itens `SEC-XX` levantados nos `risks.md` de cada feature. Critério
 | SEC-07 | Negação de serviço (DoS) na distribuição de rendimentos | 003 | Modelo pull-payment com claim individual (ADR-0004), não push em loop | pendente |
 | SEC-08 | Bypass de compliance em transferências (inclusive no marketplace) | 001, 004 | Toda transferência, incluindo as do `Marketplace`, passa obrigatoriamente por `ComplianceModule.canTransfer` | pendente |
 | SEC-09 | Auditabilidade insuficiente | todas | Evento emitido para toda mudança de estado relevante (mint, transfer, claim, listagem, compra, mudança de compliance) | pendente |
-| SEC-10 | Exposição de dados pessoais (PII) on-chain | 001 | Apenas claims booleanas/categorizadas on-chain, nunca CPF/documento (ADR-0006) | pendente |
+| SEC-10 | Exposição de dados pessoais (PII) on-chain | 001 | Apenas claims booleanas/categorizadas on-chain, nunca CPF/documento (ADR-0006) | mitigado |
 | SEC-11 | Chave do Trusted Issuer (provedor de KYC) comprometida | 001 | Chave em hardware wallet/multisig; processo de rotação documentado | pendente |
 | SEC-12 | Access control de criação de novos imóveis (Factory) | 002 | `PLATFORM_ADMIN_ROLE` restrito, idealmente multisig, para `PropertyFactory.criarImovel` | pendente |
 

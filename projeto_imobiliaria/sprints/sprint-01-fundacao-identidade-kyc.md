@@ -22,11 +22,11 @@ Preparar o ambiente de desenvolvimento Solidity e entregar `IdentityRegistry` + 
 - [ ] Selecionar/contratar provedor de KYC (decisão de negócio — pode ficar como placeholder/mock nesta sprint se ainda não estiver fechado; não bloqueia o código, só a integração real do item final).
 - [x] Escrever testes de `IdentityRegistry` (unit + fuzz) a partir de [`contracts/identity-registry.md`](../specs/features/001-identidade-kyc/contracts/identity-registry.md). (`test/IdentityRegistry.t.sol`, 15 testes cobrindo RF-02, RF-04, RF-05 e o cenário de remoção de Trusted Issuer.)
 - [x] Implementar `IdentityRegistry` até os testes passarem. (`src/IdentityRegistry.sol` — 15/15 testes verdes, 100% de cobertura de linhas/branches/funções.)
-- [ ] Escrever testes de `ComplianceModule` a partir de [`contracts/compliance-module.md`](../specs/features/001-identidade-kyc/contracts/compliance-module.md).
-- [ ] Implementar `ComplianceModule` até os testes passarem.
-- [ ] Testes de integração `IdentityRegistry` + `ComplianceModule` + mock de token.
-- [ ] Fork test em testnet Polygon (Amoy).
-- [ ] Checklist de segurança: `SEC-02`, `SEC-08`, `SEC-10`, `SEC-11` marcados como mitigados em [`specs/security-checklist.md`](../specs/security-checklist.md).
+- [x] Escrever testes de `ComplianceModule` a partir de [`contracts/compliance-module.md`](../specs/features/001-identidade-kyc/contracts/compliance-module.md). (`test/ComplianceModule.t.sol`, 11 testes cobrindo KYC, limite de holders e o invariante "nunca permite sem KYC" via fuzz.)
+- [x] Implementar `ComplianceModule` até os testes passarem. (`src/ComplianceModule.sol` — 11/11 testes verdes, 100% de cobertura. A spec não define como o contador de holders chega ao módulo, já que o `PropertyToken` só existe na Sprint 2; adicionado hook `registrarTransferencia` restrito a `TOKEN_ROLE` para isso.)
+- [x] Testes de integração `IdentityRegistry` + `ComplianceModule` + mock de token. (`test/Integration.t.sol` + `test/mocks/MockPropertyToken.sol`, 5 testes — mint/transfer ponta a ponta, cenário de revogação de claim sem confisco de saldo, limite de holders via token.)
+- [ ] Fork test em testnet Polygon (Amoy). (Bloqueado até a conta de deploy ter RPC/MATIC de teste configurados — ver item de setup acima.)
+- [~] Checklist de segurança: `SEC-02`, `SEC-08`, `SEC-10`, `SEC-11` marcados como mitigados em [`specs/security-checklist.md`](../specs/security-checklist.md). `SEC-10` (PII on-chain) mitigado — nenhum dado pessoal é gravado, apenas claims e hash de assinatura. `SEC-02`/`SEC-08` ficam `pendente`: essas linhas também cobrem features 002/004 (`PropertyToken`, `Marketplace`) que ainda não existem, então só fecham quando esses contratos existirem e reforçarem `canTransfer`. `SEC-11` fica `pendente`: a contenção on-chain (`removerTrustedIssuer`) já está implementada e testada, mas o item exige hardware wallet/multisig e processo de rotação do provedor de KYC real, que ainda não foi contratado (ver próximo item).
 - [ ] Deploy em testnet (integração real com o provedor de KYC pode ficar para quando o provedor estiver contratado, fora do ritmo desta sprint se necessário).
 
 ## Dependências / bloqueios
