@@ -1,7 +1,7 @@
 ---
 status: in-progress
 owner: tech-lead
-last_updated: 2026-08-19
+last_updated: 2026-08-20
 ---
 
 # Sprint 1 — Fundação do Projeto + Feature 001 (Identidade e KYC)
@@ -20,8 +20,8 @@ Preparar o ambiente de desenvolvimento Solidity e entregar `IdentityRegistry` + 
 
 **Feature `001-identidade-kyc`** (backlog completo em [`specs/features/001-identidade-kyc/tasks.md`](../specs/features/001-identidade-kyc/tasks.md)):
 - [ ] Selecionar/contratar provedor de KYC (decisão de negócio — pode ficar como placeholder/mock nesta sprint se ainda não estiver fechado; não bloqueia o código, só a integração real do item final).
-- [ ] Escrever testes de `IdentityRegistry` (unit + fuzz) a partir de [`contracts/identity-registry.md`](../specs/features/001-identidade-kyc/contracts/identity-registry.md).
-- [ ] Implementar `IdentityRegistry` até os testes passarem.
+- [x] Escrever testes de `IdentityRegistry` (unit + fuzz) a partir de [`contracts/identity-registry.md`](../specs/features/001-identidade-kyc/contracts/identity-registry.md). (`test/IdentityRegistry.t.sol`, 15 testes cobrindo RF-02, RF-04, RF-05 e o cenário de remoção de Trusted Issuer.)
+- [x] Implementar `IdentityRegistry` até os testes passarem. (`src/IdentityRegistry.sol` — 15/15 testes verdes, 100% de cobertura de linhas/branches/funções.)
 - [ ] Escrever testes de `ComplianceModule` a partir de [`contracts/compliance-module.md`](../specs/features/001-identidade-kyc/contracts/compliance-module.md).
 - [ ] Implementar `ComplianceModule` até os testes passarem.
 - [ ] Testes de integração `IdentityRegistry` + `ComplianceModule` + mock de token.
