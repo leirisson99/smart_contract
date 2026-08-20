@@ -66,9 +66,7 @@ Rodar localmente: `forge test -vv` (suíte completa) e `forge coverage` (relató
 
 ## Pendências conhecidas
 
-- **Fork test / deploy em testnet Polygon Amoy**: precisa de `POLYGON_AMOY_RPC_URL` e uma conta financiada via faucet no `.env` (ver `.env.example`).
-- **Contratação do provedor de KYC**: decisão de negócio em aberto — bloqueia a integração real de Trusted Issuer (testes/deploy local já usam um issuer mock, o que não bloqueia o código).
-- **Checklist de segurança**: `SEC-02`, `SEC-08`, `SEC-11` seguem `pendente` (ver detalhes acima e em `specs/security-checklist.md`).
+Lista completa e atualizada em [`PENDENCIAS.md`](PENDENCIAS.md). Resumo: fork test/deploy em testnet Amoy (falta RPC + MATIC de faucet), contratação do provedor de KYC, e `SEC-02`/`SEC-08`/`SEC-11` do checklist de segurança.
 
 ## Próximos passos (ainda não iniciados)
 

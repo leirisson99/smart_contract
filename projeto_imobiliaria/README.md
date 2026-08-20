@@ -1,6 +1,6 @@
 # Tokenização Imobiliária — Smart Contracts
 
-POC de tokenização de imóveis (ERC-3643) rodando em Polygon PoS, construída com Foundry seguindo Spec-Driven Development + TDD. Ver `specs/00-constitution.md` para os princípios de engenharia, `sprints/00-visao-geral.md` para o roadmap de execução, e [`PROGRESS.md`](PROGRESS.md) para o log do que já foi implementado e testado.
+POC de tokenização de imóveis (ERC-3643) rodando em Polygon PoS, construída com Foundry seguindo Spec-Driven Development + TDD. Ver `specs/00-constitution.md` para os princípios de engenharia, `sprints/00-visao-geral.md` para o roadmap de execução, [`PROGRESS.md`](PROGRESS.md) para o log do que já foi implementado e testado, e [`PENDENCIAS.md`](PENDENCIAS.md) para os bloqueios e itens em aberto.
 
 ## Stack
 

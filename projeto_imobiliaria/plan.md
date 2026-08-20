@@ -21,6 +21,7 @@ Este pacote de especificações segue **Spec-Driven Development (SDD)** — toda
 | [`specs/guia-conhecimentos-solidity.md`](specs/guia-conhecimentos-solidity.md) | O que você precisa saber (linguagem Solidity, EVM, OpenZeppelin, Foundry) para implementar os contratos | approved |
 | [`sprints/00-visao-geral.md`](sprints/00-visao-geral.md) | Sprints de execução — atualmente só a trilha de Smart Contract | approved |
 | [`PROGRESS.md`](PROGRESS.md) | Log cronológico do que já foi implementado, testado e verificado (código, não specs) | living-document |
+| [`PENDENCIAS.md`](PENDENCIAS.md) | Bloqueios e itens técnicos em aberto (setup, segurança, sprints) | living-document |
 
 ### Decisões arquiteturais (ADRs)
 
