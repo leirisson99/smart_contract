@@ -110,6 +110,23 @@ contract PropertyFactoryTest is Test {
         assertEq(lista.length, 2);
     }
 
+    // ---- Hardening (Sprint 4 / Slither missing-zero-check) ----
+
+    function test_constructor_revertSeMoedaPagamentoZero() public {
+        vm.expectRevert(PropertyFactory.EnderecoInvalido.selector);
+        new PropertyFactory(identityRegistry, compliance, address(0), tesouraria, address(implementacao));
+    }
+
+    function test_constructor_revertSeTesourariaZero() public {
+        vm.expectRevert(PropertyFactory.EnderecoInvalido.selector);
+        new PropertyFactory(identityRegistry, compliance, address(moeda), address(0), address(implementacao));
+    }
+
+    function test_constructor_revertSeImplementacaoZero() public {
+        vm.expectRevert(PropertyFactory.EnderecoInvalido.selector);
+        new PropertyFactory(identityRegistry, compliance, address(moeda), tesouraria, address(0));
+    }
+
     function testFuzz_criarImovel_valoresECotasAleatorios(uint256 numeroCotas, uint256 precoPorCota) public {
         numeroCotas = bound(numeroCotas, 1, 1_000_000);
         precoPorCota = bound(precoPorCota, 1, 1_000_000e18);

@@ -9,6 +9,7 @@ import {ComplianceModule} from "../src/ComplianceModule.sol";
 import {PropertyToken} from "../src/PropertyToken.sol";
 import {Marketplace} from "../src/Marketplace.sol";
 import {MockERC20} from "./mocks/MockERC20.sol";
+import {FalsyPropertyToken} from "./mocks/FalsyPropertyToken.sol";
 
 /// Testes de `Marketplace` — feature 004-mercado-secundario.
 /// Escritos a partir de `spec.md` e `contracts/marketplace.md`. TDD
@@ -308,6 +309,54 @@ contract MarketplaceTest is Test {
     function test_constructor_revertSeTaxaInicialExcede100Porcento() public {
         vm.expectRevert(abi.encodeWithSelector(Marketplace.TaxaInvalida.selector, 10_001));
         new Marketplace(taxaTesouraria, 10_001);
+    }
+
+    function test_constructor_revertSeTaxaTesourariaZero() public {
+        vm.expectRevert(Marketplace.EnderecoInvalido.selector);
+        new Marketplace(address(0), 100);
+    }
+
+    // ---- Hardening (Sprint 4 / Slither unchecked-transfer) ----
+    //
+    // O `PropertyToken` real nunca retorna `false` em transfer/transferFrom
+    // (todo caminho de falha reverte), então os `require`s abaixo não são
+    // alcançáveis com o contrato real. Usamos um dublê (`FalsyPropertyToken`)
+    // que devolve `false` em vez de reverter, só para provar que o
+    // `Marketplace` trata esse caso defensivamente.
+
+    function test_listar_revertSeTransferFromRetornaFalse() public {
+        FalsyPropertyToken falsy = new FalsyPropertyToken(moeda);
+        falsy.configurarRetornos(false, true);
+
+        vm.prank(vendedor);
+        vm.expectRevert(Marketplace.TransferenciaFalhou.selector);
+        marketplace.listar(address(falsy), 10, PRECO_POR_COTA);
+    }
+
+    function test_cancelar_revertSeTransferRetornaFalse() public {
+        FalsyPropertyToken falsy = new FalsyPropertyToken(moeda);
+
+        vm.prank(vendedor);
+        uint256 idListagem = marketplace.listar(address(falsy), 10, PRECO_POR_COTA);
+
+        falsy.configurarRetornos(true, false);
+
+        vm.prank(vendedor);
+        vm.expectRevert(Marketplace.TransferenciaFalhou.selector);
+        marketplace.cancelar(idListagem);
+    }
+
+    function test_comprar_revertSeTransferRetornaFalse() public {
+        FalsyPropertyToken falsy = new FalsyPropertyToken(moeda);
+
+        vm.prank(vendedor);
+        uint256 idListagem = marketplace.listar(address(falsy), 10, PRECO_POR_COTA);
+
+        falsy.configurarRetornos(true, false);
+
+        vm.prank(comprador);
+        vm.expectRevert(Marketplace.TransferenciaFalhou.selector);
+        marketplace.comprar(idListagem, 5);
     }
 
     // ---- Leitura ----

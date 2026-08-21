@@ -105,6 +105,46 @@ contract PropertyTokenTest is Test {
         );
     }
 
+    function test_inicializar_revertSeEnderecoZero() public {
+        PropertyToken outroClone = PropertyToken(Clones.clone(address(implementacao)));
+
+        vm.expectRevert(PropertyToken.EnderecoInvalido.selector);
+        outroClone.inicializar(
+            "Outro",
+            TOTAL_COTAS,
+            PRECO_POR_COTA,
+            address(0),
+            address(identityRegistry),
+            address(moeda),
+            tesouraria,
+            admin
+        );
+
+        vm.expectRevert(PropertyToken.EnderecoInvalido.selector);
+        outroClone.inicializar(
+            "Outro",
+            TOTAL_COTAS,
+            PRECO_POR_COTA,
+            address(compliance),
+            address(identityRegistry),
+            address(moeda),
+            address(0),
+            admin
+        );
+
+        vm.expectRevert(PropertyToken.EnderecoInvalido.selector);
+        outroClone.inicializar(
+            "Outro",
+            TOTAL_COTAS,
+            PRECO_POR_COTA,
+            address(compliance),
+            address(identityRegistry),
+            address(moeda),
+            tesouraria,
+            address(0)
+        );
+    }
+
     // ---- RF-07 / RF-08: compra primária ----
 
     function test_RF07_comprarCotas_creditaSaldoComKYC() public {
@@ -380,6 +420,25 @@ contract PropertyTokenTest is Test {
 
         assertEq(token.balanceOfAt(investidorVerificado, snapshot1), 10);
         assertEq(token.balanceOfAt(investidorVerificado, snapshot2), 15);
+    }
+
+    /// Duas mutações dentro do MESMO período de snapshot só devem gravar UM
+    /// checkpoint (o saldo antes da primeira mutação) — a segunda mutação não
+    /// pode sobrescrever o valor histórico do snapshot.
+    function test_balanceOfAt_duasMutacoesNoMesmoSnapshotNaoSobrescrevem() public {
+        vm.prank(investidorVerificado);
+        token.comprarCotas(10);
+
+        vm.prank(distribuidor);
+        uint256 snapshotId = token.snapshot();
+
+        vm.startPrank(investidorVerificado);
+        token.comprarCotas(5);
+        token.comprarCotas(3);
+        vm.stopPrank();
+
+        assertEq(token.balanceOfAt(investidorVerificado, snapshotId), 10);
+        assertEq(token.balanceOf(investidorVerificado), 18);
     }
 
     function test_balanceOfAt_revertSeSnapshotInvalido() public {

@@ -38,6 +38,7 @@ contract PropertyFactory is AccessControl {
 
     error NumeroCotasInvalido();
     error ValorNaoDivisivelPorCotas(uint256 valorTotal, uint256 numeroCotas);
+    error EnderecoInvalido();
 
     constructor(
         IdentityRegistry identityRegistry_,
@@ -46,6 +47,12 @@ contract PropertyFactory is AccessControl {
         address tesouraria_,
         address propertyTokenImplementacao_
     ) {
+        if (
+            address(identityRegistry_) == address(0) || address(complianceModule_) == address(0)
+                || moedaPagamento_ == address(0) || tesouraria_ == address(0)
+                || propertyTokenImplementacao_ == address(0)
+        ) revert EnderecoInvalido();
+
         identityRegistry = identityRegistry_;
         complianceModule = complianceModule_;
         moedaPagamento = moedaPagamento_;
@@ -67,6 +74,12 @@ contract PropertyFactory is AccessControl {
 
         propertyToken = Clones.clone(propertyTokenImplementacao);
 
+        // Effects antes das chamadas externas (CEI): estado e evento já
+        // refletem o novo imóvel antes de conceder role/inicializar o clone.
+        uint256 id = _imoveis.length;
+        _imoveis.push(propertyToken);
+        emit ImovelCriado(id, propertyToken, nome, valorTotal, numeroCotas);
+
         complianceModule.grantRole(complianceModule.TOKEN_ROLE(), propertyToken);
 
         PropertyToken(propertyToken)
@@ -80,11 +93,6 @@ contract PropertyFactory is AccessControl {
                 tesouraria,
                 msg.sender
             );
-
-        uint256 id = _imoveis.length;
-        _imoveis.push(propertyToken);
-
-        emit ImovelCriado(id, propertyToken, nome, valorTotal, numeroCotas);
     }
 
     function imoveis() external view returns (address[] memory) {

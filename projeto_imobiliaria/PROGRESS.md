@@ -10,10 +10,10 @@ last_updated: 2026-08-21
 
 ## Estado atual (2026-08-21)
 
-- **Sprints 1-3**: os 6 contratos da POC (`IdentityRegistry`, `ComplianceModule`, `PropertyToken`, `PropertyFactory`, `DividendDistributor`, `Marketplace`) estão implementados e testados — 101/101 testes, 100% de cobertura de linhas/branches/funções em todo `src/*.sol`.
-- **Checklist de segurança**: 11/12 itens `mitigado`. Único pendente é `SEC-11` (chave do Trusted Issuer), que depende da contratação de um provedor de KYC real.
-- **Pendente** (bloqueado por insumos externos, não por código): fork test/deploy na testnet Polygon Amoy (falta RPC + MATIC de teste), contratação do provedor de KYC, análise estática (Slither) ainda não rodada.
-- **Sprint 4** (consolidação de segurança e preparação para auditoria) ainda não iniciada.
+- **Sprints 1-3**: os 6 contratos da POC (`IdentityRegistry`, `ComplianceModule`, `PropertyToken`, `PropertyFactory`, `DividendDistributor`, `Marketplace`) estão implementados e testados — 110/110 testes, 100% de cobertura de linhas/branches/funções em todo `src/*.sol`.
+- **Sprint 4 (em andamento)**: Slither rodado e triado (22 → 9 findings, os 9 restantes justificados como falso positivo/risco aceito); 13 findings corrigidos no código com testes novos. `SEC-11` passou de `pendente` para `parcialmente mitigado` — processo de rotação documentado.
+- **Checklist de segurança**: 11/12 itens `mitigado`, `SEC-11` `parcialmente mitigado` (só falta a custódia real da chave, que depende da contratação do provedor de KYC).
+- **Pendente** (bloqueado por insumos externos, não por código): fork test/deploy na testnet Polygon Amoy (falta RPC + MATIC de teste), contratação do provedor de KYC, análise dinâmica (Mythril) não executável neste ambiente Windows (sem Docker disponível) — recomendado rodar em CI/Linux.
 
 ## Linha do tempo
 
@@ -101,19 +101,47 @@ last_updated: 2026-08-21
 | `IdentityRegistry` | 15 | 100% linhas/branches/funções |
 | `ComplianceModule` | 11 | 100% linhas/branches/funções |
 | Integração feature 001 (`Integration.t.sol`) | 5 | — |
-| `PropertyToken` (inclui snapshot) | 24 | 100% linhas/branches/funções |
-| `PropertyFactory` | 7 | 100% linhas/branches/funções |
+| `PropertyToken` (inclui snapshot) | 26 | 100% linhas/branches/funções |
+| `PropertyFactory` | 10 | 100% linhas/branches/funções |
 | Integração feature 002 (`IntegrationPropertyFactory.t.sol`) | 5 | — |
 | `DividendDistributor` | 15 | 100% linhas/branches/funções |
-| `Marketplace` | 19 | 100% linhas/branches/funções |
-| **Total** | **101** | **100% em todos os `src/*.sol`** |
+| `Marketplace` | 23 | 100% linhas/branches/funções |
+| **Total** | **110** | **100% em todos os `src/*.sol`** |
 
 Rodar localmente: `forge test -vv` (suíte completa) e `forge coverage` (relatório de cobertura).
 
 ## Pendências conhecidas
 
-Lista completa e atualizada em [`PENDENCIAS.md`](PENDENCIAS.md). Resumo: fork test/deploy em testnet Amoy (falta RPC + MATIC de faucet), contratação do provedor de KYC (bloqueia `SEC-11`), decisão de negócio sobre a moeda de liquidação real (RISK-08), e análise estática (Slither) ainda não rodada.
+Lista completa e atualizada em [`PENDENCIAS.md`](PENDENCIAS.md). Resumo: fork test/deploy em testnet Amoy (falta RPC + MATIC de faucet), contratação do provedor de KYC (bloqueia a custódia real de `SEC-11`), decisão de negócio sobre a moeda de liquidação real (RISK-08), e Mythril ainda não executado (ambiente Windows sem Docker disponível nesta sessão).
 
-## Próximos passos (ainda não iniciados)
+### 2026-08-21 — Sprint 4: Slither, hardening e SEC-11 (em andamento)
 
-- **Sprint 4**: consolidação de segurança e preparação para auditoria externa (Slither/Mythril, fechar `SEC-11`, deploy real em testnet).
+- Instalado Slither 0.11.6 (`pip install slither-analyzer`) e rodado sobre todo `src/*.sol`: 22 findings
+  iniciais (3 High, 5 Medium, 9 Low, 4 Informational, 1 Optimization).
+- 13 findings corrigidos no código: `Marketplace.listar/cancelar/comprar` agora checam o retorno de
+  `transfer`/`transferFrom` (`unchecked-transfer`, High); zero-address check em `PropertyFactory.constructor`,
+  `Marketplace.constructor` e `PropertyToken.inicializar` (`missing-zero-check`); `PropertyFactory.criarImovel`
+  reordenado para CEI estrito (`reentrancy-benign`/`reentrancy-events`); `Marketplace.taxaTesouraria` agora
+  `immutable`; locais de `listagensAtivasPorToken` inicializados explicitamente. Todos com teste novo
+  cobrindo o caminho antes não testado (inclui `test/mocks/FalsyPropertyToken.sol`, um dublê que simula
+  `transfer`/`transferFrom` retornando `false`, cenário impossível com o `PropertyToken` real mas necessário
+  para exercitar o `require` de defesa em profundidade).
+- Além disso, um gap de cobertura pré-existente em `PropertyToken._writeCheckpoint` (statement nunca avaliado:
+  duas mutações no mesmo período de snapshot) foi fechado com um teste novo — 100% de statements restaurado.
+- Os 9 findings restantes do Slither foram triados como falso positivo ou risco aceito por design — detalhe
+  completo em [`specs/slither-triage.md`](specs/slither-triage.md).
+- `specs/runbooks/rotacao-trusted-issuer.md` criado: processo de contenção e rotação de chave do Trusted
+  Issuer (`SEC-11`) — fecha a parte de processo do item; a custódia real (hardware wallet/multisig do
+  provedor) segue dependendo da contratação do provedor de KYC.
+- `specs/audit-package.md` criado: escopo e materiais de apoio consolidados para o auditor externo.
+- `specs/features/*/risks.md` (001-004) revisados — todo `RISK-XX` confirmado mitigado ou aceito.
+- Mythril não pôde ser rodado neste ambiente: instalação nativa falha no Windows (`coincurve`/`cffi` não
+  compila) e o Docker Desktop local não estava em execução para usar a imagem oficial `mythril/myth`.
+  Recomendado como próximo passo em CI/Linux ou WSL2 antes do envio final à auditoria.
+- Suíte: 101 → 110 testes (todos passando), 100% de cobertura mantida em todos os 6 contratos.
+
+## Próximos passos
+
+- **Sprint 4 (restante)**: rodar Mythril em `PropertyToken`/`DividendDistributor` (ambiente Linux/CI ou
+  WSL2+Docker), congelar tag de release para envio à auditoria, contratar a auditoria externa (ação de
+  negócio), deploy real em testnet Amoy (falta RPC + MATIC de faucet).

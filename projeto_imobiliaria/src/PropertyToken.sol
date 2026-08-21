@@ -60,6 +60,7 @@ contract PropertyToken is AccessControl, Pausable, ReentrancyGuard {
     error PermissaoInsuficiente(address proprietario, address spender, uint256 solicitado, uint256 permitido);
     error ComplianceNaoVerificado(string motivo);
     error SnapshotInvalido(uint256 snapshotId);
+    error EnderecoInvalido();
 
     constructor() {
         // Trava a implementação (não-clone) — só clones podem ser inicializados.
@@ -77,6 +78,10 @@ contract PropertyToken is AccessControl, Pausable, ReentrancyGuard {
         address admin_
     ) external {
         if (_inicializado) revert JaInicializado();
+        if (
+            complianceModule_ == address(0) || identityRegistry_ == address(0) || moedaPagamento_ == address(0)
+                || tesouraria_ == address(0) || admin_ == address(0)
+        ) revert EnderecoInvalido();
         _inicializado = true;
 
         nome = nome_;

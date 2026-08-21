@@ -33,7 +33,7 @@ contract Marketplace is AccessControl, ReentrancyGuard {
         bool ativa;
     }
 
-    address public taxaTesouraria;
+    address public immutable taxaTesouraria;
     uint256 public taxaTransacaoBps;
 
     uint256 private _proximoIdListagem;
@@ -63,8 +63,11 @@ contract Marketplace is AccessControl, ReentrancyGuard {
     error ListagemInativa(uint256 idListagem);
     error QuantidadeIndisponivel(uint256 solicitado, uint256 disponivel);
     error TaxaInvalida(uint256 taxaBps);
+    error EnderecoInvalido();
+    error TransferenciaFalhou();
 
     constructor(address taxaTesouraria_, uint256 taxaTransacaoBpsInicial) {
+        if (taxaTesouraria_ == address(0)) revert EnderecoInvalido();
         if (taxaTransacaoBpsInicial > BPS_DENOMINADOR) revert TaxaInvalida(taxaTransacaoBpsInicial);
         taxaTesouraria = taxaTesouraria_;
         taxaTransacaoBps = taxaTransacaoBpsInicial;
@@ -95,7 +98,8 @@ contract Marketplace is AccessControl, ReentrancyGuard {
         });
         _listagensPorToken[propertyToken].push(idListagem);
 
-        PropertyToken(propertyToken).transferFrom(msg.sender, address(this), quantidade);
+        bool sucesso = PropertyToken(propertyToken).transferFrom(msg.sender, address(this), quantidade);
+        if (!sucesso) revert TransferenciaFalhou();
 
         emit ListagemCriada(idListagem, msg.sender, propertyToken, quantidade, precoPorCota);
     }
@@ -111,7 +115,8 @@ contract Marketplace is AccessControl, ReentrancyGuard {
         l.ativa = false;
         l.quantidadeDisponivel = 0;
 
-        PropertyToken(l.propertyToken).transfer(msg.sender, quantidade);
+        bool sucesso = PropertyToken(l.propertyToken).transfer(msg.sender, quantidade);
+        if (!sucesso) revert TransferenciaFalhou();
 
         emit ListagemCancelada(idListagem);
     }
@@ -146,7 +151,8 @@ contract Marketplace is AccessControl, ReentrancyGuard {
 
         // Passa pelo transfer normal do PropertyToken — mesma checagem de
         // compliance da emissão primária (RF-19, RISK-16, SEC-08).
-        PropertyToken(propertyToken).transfer(msg.sender, quantidade);
+        bool sucesso = PropertyToken(propertyToken).transfer(msg.sender, quantidade);
+        if (!sucesso) revert TransferenciaFalhou();
 
         emit CompraExecutada(idListagem, msg.sender, quantidade, valorTotal, taxa);
     }
@@ -184,13 +190,13 @@ contract Marketplace is AccessControl, ReentrancyGuard {
         uint256[] storage idsDoToken = _listagensPorToken[propertyToken];
         uint256 total = idsDoToken.length;
 
-        uint256 contagem;
+        uint256 contagem = 0;
         for (uint256 i = 0; i < total; i++) {
             if (_listagens[idsDoToken[i]].ativa) contagem++;
         }
 
         uint256[] memory ativas = new uint256[](contagem);
-        uint256 indice;
+        uint256 indice = 0;
         for (uint256 i = 0; i < total; i++) {
             uint256 id = idsDoToken[i];
             if (_listagens[id].ativa) {

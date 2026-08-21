@@ -2,6 +2,10 @@
 cache/
 out/
 
+# Análise estática (gerados sob demanda, ver specs/slither-triage.md)
+lcov.info
+slither-report.json
+
 # Commonly ignored directories
 .logs/
 .ignore/
