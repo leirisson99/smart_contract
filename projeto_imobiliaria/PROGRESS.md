@@ -1,19 +1,19 @@
 ---
 status: living-document
 owner: tech-lead
-last_updated: 2026-08-20
+last_updated: 2026-08-21
 ---
 
 # Progresso do Projeto — Log de Execução
 
 > Registro cronológico do que já foi **implementado, testado e verificado**. Complementa `plan.md` (índice do pacote de specs) e `sprints/` (planejamento) — aqui fica o que de fato foi feito, para qualquer pessoa (ou sessão futura) retomar o contexto rapidamente. Atualizar a cada marco relevante, não a cada commit.
 
-## Estado atual (2026-08-20)
+## Estado atual (2026-08-21)
 
-- **Sprint 1** ([sprints/sprint-01-fundacao-identidade-kyc.md](sprints/sprint-01-fundacao-identidade-kyc.md)): setup do projeto e feature `001-identidade-kyc` (`IdentityRegistry` + `ComplianceModule`) completos — testados (unit, fuzz, integração) com 100% de cobertura, verificados também com deploy real em node local (Anvil).
-- **Sprint 2** ([sprints/sprint-02-tokenizacao-imovel.md](sprints/sprint-02-tokenizacao-imovel.md)) em andamento: feature `002-tokenizacao-imovel` (`PropertyToken` + `PropertyFactory`) implementada e testada (unit, fuzz, integração) com 100% de cobertura.
-- **Pendente** (bloqueado por insumos externos, não por código): fork test/deploy na testnet Polygon Amoy (falta RPC + MATIC de teste) e contratação do provedor de KYC (decisão de negócio).
-- **Sprints 3-4** (features `003`/`004`, consolidação de segurança) ainda não iniciadas.
+- **Sprints 1-3**: os 6 contratos da POC (`IdentityRegistry`, `ComplianceModule`, `PropertyToken`, `PropertyFactory`, `DividendDistributor`, `Marketplace`) estão implementados e testados — 101/101 testes, 100% de cobertura de linhas/branches/funções em todo `src/*.sol`.
+- **Checklist de segurança**: 11/12 itens `mitigado`. Único pendente é `SEC-11` (chave do Trusted Issuer), que depende da contratação de um provedor de KYC real.
+- **Pendente** (bloqueado por insumos externos, não por código): fork test/deploy na testnet Polygon Amoy (falta RPC + MATIC de teste), contratação do provedor de KYC, análise estática (Slither) ainda não rodada.
+- **Sprint 4** (consolidação de segurança e preparação para auditoria) ainda não iniciada.
 
 ## Linha do tempo
 
@@ -72,6 +72,28 @@ last_updated: 2026-08-20
 - `SEC-02`, `SEC-03`, `SEC-05`, `SEC-12` marcados como `mitigado` em [specs/security-checklist.md](specs/security-checklist.md) — access control de `PropertyToken`/`PropertyFactory` testado, sem blocos `unchecked`, imutabilidade via clone EIP-1167 com padrão de inicialização travado, `criarImovel` restrito a `PLATFORM_ADMIN_ROLE`.
 - `SEC-01` (reentrancy) segue `pendente`: `PropertyToken` já está protegido e testado, mas a linha também cobre a feature `003` (`DividendDistributor`), ainda não implementada.
 
+### 2026-08-21 — Snapshot em `PropertyToken` (pré-requisito da Sprint 3)
+- `contracts/dividend-distributor.md` exige um snapshot dos saldos "inspirado em `ERC20Snapshot`" que a feature 002 não previu. Estendido `PropertyToken` via TDD, preservando os 17 testes já existentes: `snapshot()` (restrito a `SNAPSHOT_ROLE`, será concedido ao `DividendDistributor` de cada imóvel) e `balanceOfAt(conta, snapshotId)` via `Checkpoints` da OZ, gravados lazily na primeira mutação após cada snapshot — evita loop sobre holders (RNF-06).
+- Resultado: +7 testes (24 no total em `PropertyToken.t.sol`), 100% cobertura mantida.
+- Commit: `c0aed5a`.
+
+### 2026-08-21 — `DividendDistributor` via TDD (Sprint 3)
+- `test/DividendDistributor.t.sol` (15 testes) a partir de `spec.md`/`contracts/dividend-distributor.md`, cobrindo RF-11 a RF-15, dust/arredondamento e o cenário "transferência de cota entre ciclos" (spec.md).
+- `src/DividendDistributor.sol` implementado: modelo pull-payment (ADR-0004) — `depositarRendimento` tira snapshot e abre ciclo; `claim`/`claimTodos` reivindicam a parte proporcional ao saldo no snapshot, uma vez por ciclo, sem iterar sobre holders (RNF-06). Deployado com constructor normal (não clone — frequência baixa não justifica EIP-1167); requer `SNAPSHOT_ROLE` no `PropertyToken` do imóvel como passo de deploy.
+- Resultado: 15/15 testes, 100% cobertura.
+- Commit: `aac3a06`.
+
+### 2026-08-21 — `Marketplace` via TDD (Sprint 3)
+- `test/Marketplace.t.sol` (19 testes) a partir de `spec.md`/`contracts/marketplace.md`, cobrindo RF-16 a RF-20, taxa de transação e duas compras sequenciais na mesma listagem (cenário de concorrência).
+- `src/Marketplace.sol` implementado: mercado a preço fixo (RNF-09) compartilhado entre imóveis, escrow de cotas via `transferFrom`/`transfer` normais do `PropertyToken` — nenhum atalho de compliance (RISK-16/SEC-08); a segurança vem do próprio `PropertyToken` recusar transferências, não de checagem duplicada. Consequência: o endereço do `Marketplace` precisa de uma claim `KYC_APPROVED` no `IdentityRegistry` para poder manter cotas em escrow — passo de deploy.
+- Usa o `PropertyToken` real nos testes (não mock) — já cobre a integração Marketplace + PropertyToken + ComplianceModule pedida em `test-strategy.md`.
+- Resultado: 19/19 testes, 100% cobertura.
+- Commit: `1dbf401`.
+
+### 2026-08-21 — Checklist de segurança atualizado (Sprint 3)
+- `SEC-01`, `SEC-04`, `SEC-06`, `SEC-07`, `SEC-08`, `SEC-09` marcados como `mitigado` em [specs/security-checklist.md](specs/security-checklist.md) — reentrancy coberta em todos os contratos que movem valor; preço fixo reduz superfície de MEV; ausência de oráculo é uma escolha de design testada; `claim` nunca itera sobre holders; `Marketplace` provado end-to-end contra o `ComplianceModule`/`PropertyToken` reais; todo contrato emite evento para toda mudança de estado relevante.
+- Resultado: **11/12 itens do checklist mitigados** — só `SEC-11` (chave do Trusted Issuer) segue pendente, bloqueado pela contratação do provedor de KYC.
+
 ## Estado da suíte de testes
 
 | Contrato/suite | Testes | Cobertura |
@@ -79,18 +101,19 @@ last_updated: 2026-08-20
 | `IdentityRegistry` | 15 | 100% linhas/branches/funções |
 | `ComplianceModule` | 11 | 100% linhas/branches/funções |
 | Integração feature 001 (`Integration.t.sol`) | 5 | — |
-| `PropertyToken` | 17 | 100% linhas/branches/funções |
+| `PropertyToken` (inclui snapshot) | 24 | 100% linhas/branches/funções |
 | `PropertyFactory` | 7 | 100% linhas/branches/funções |
 | Integração feature 002 (`IntegrationPropertyFactory.t.sol`) | 5 | — |
-| **Total** | **60** | **100% em todos os `src/*.sol`** |
+| `DividendDistributor` | 15 | 100% linhas/branches/funções |
+| `Marketplace` | 19 | 100% linhas/branches/funções |
+| **Total** | **101** | **100% em todos os `src/*.sol`** |
 
 Rodar localmente: `forge test -vv` (suíte completa) e `forge coverage` (relatório de cobertura).
 
 ## Pendências conhecidas
 
-Lista completa e atualizada em [`PENDENCIAS.md`](PENDENCIAS.md). Resumo: fork test/deploy em testnet Amoy (falta RPC + MATIC de faucet), contratação do provedor de KYC, decisão de negócio sobre a moeda de liquidação real (RISK-08), e `SEC-01`/`SEC-08`/`SEC-11` do checklist de segurança.
+Lista completa e atualizada em [`PENDENCIAS.md`](PENDENCIAS.md). Resumo: fork test/deploy em testnet Amoy (falta RPC + MATIC de faucet), contratação do provedor de KYC (bloqueia `SEC-11`), decisão de negócio sobre a moeda de liquidação real (RISK-08), e análise estática (Slither) ainda não rodada.
 
 ## Próximos passos (ainda não iniciados)
 
-- **Sprint 3** ([sprints/sprint-03-rendimentos-e-mercado-secundario.md](sprints/sprint-03-rendimentos-e-mercado-secundario.md)): features `003-distribuicao-rendimentos` e `004-mercado-secundario`.
-- **Sprint 4**: consolidação de segurança e preparação para auditoria externa.
+- **Sprint 4**: consolidação de segurança e preparação para auditoria externa (Slither/Mythril, fechar `SEC-11`, deploy real em testnet).

@@ -21,7 +21,7 @@ Por decisão do time, as sprints abaixo cobrem **exclusivamente a construção d
 |---|---|---|---|
 | [Sprint 1](sprint-01-fundacao-identidade-kyc.md) | 3 | Setup do projeto Foundry + Feature `001-identidade-kyc` | in-progress |
 | [Sprint 2](sprint-02-tokenizacao-imovel.md) | 4 | Feature `002-tokenizacao-imovel` | in-progress |
-| [Sprint 3](sprint-03-rendimentos-e-mercado-secundario.md) | 5 | Features `003-distribuicao-rendimentos` e `004-mercado-secundario` | not-started |
+| [Sprint 3](sprint-03-rendimentos-e-mercado-secundario.md) | 5 | Features `003-distribuicao-rendimentos` e `004-mercado-secundario` | in-progress |
 | [Sprint 4](sprint-04-seguranca-e-preparacao-auditoria.md) | 6 | Consolidação de segurança e preparação para auditoria externa | not-started |
 
 ## Definition of Done de uma sprint desta trilha
