@@ -6,6 +6,7 @@ import {Pausable} from "@openzeppelin/contracts/utils/Pausable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Checkpoints} from "@openzeppelin/contracts/utils/structs/Checkpoints.sol";
 import {ComplianceModule} from "./ComplianceModule.sol";
 import {IdentityRegistry} from "./IdentityRegistry.sol";
 
@@ -20,8 +21,13 @@ import {IdentityRegistry} from "./IdentityRegistry.sol";
 /// inicialização — ver sprints/sprint-02-tokenizacao-imovel.md.
 contract PropertyToken is AccessControl, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
+    using Checkpoints for Checkpoints.Trace256;
 
     bytes32 public constant PLATFORM_ADMIN_ROLE = keccak256("PLATFORM_ADMIN_ROLE");
+
+    /// @notice Papel concedido ao `DividendDistributor` do imóvel (feature 003),
+    /// autorizado a tirar snapshots dos saldos para calcular ciclos de rendimento.
+    bytes32 public constant SNAPSHOT_ROLE = keccak256("SNAPSHOT_ROLE");
 
     bool private _inicializado;
 
@@ -37,11 +43,15 @@ contract PropertyToken is AccessControl, Pausable, ReentrancyGuard {
     mapping(address => uint256) private _balances;
     mapping(address => mapping(address => uint256)) private _allowances;
 
+    uint256 private _currentSnapshotId;
+    mapping(address => Checkpoints.Trace256) private _balanceCheckpoints;
+
     event CotasCompradas(address indexed investidor, uint256 quantidade, uint256 valorPago);
     event Transfer(address indexed de, address indexed para, uint256 quantidade);
     event Approval(address indexed proprietario, address indexed spender, uint256 quantidade);
     event Pausado();
     event Retomado();
+    event SnapshotCriado(uint256 indexed id);
 
     error JaInicializado();
     error QuantidadeInvalida();
@@ -49,6 +59,7 @@ contract PropertyToken is AccessControl, Pausable, ReentrancyGuard {
     error SaldoInsuficiente(address de, uint256 solicitado, uint256 saldo);
     error PermissaoInsuficiente(address proprietario, address spender, uint256 solicitado, uint256 permitido);
     error ComplianceNaoVerificado(string motivo);
+    error SnapshotInvalido(uint256 snapshotId);
 
     constructor() {
         // Trava a implementação (não-clone) — só clones podem ser inicializados.
@@ -95,6 +106,7 @@ contract PropertyToken is AccessControl, Pausable, ReentrancyGuard {
         uint256 valorPago = precoPorCota * quantidade;
 
         // Effects antes de qualquer chamada externa (CEI, SEC-01).
+        _writeCheckpoint(_balanceCheckpoints[msg.sender], _balances[msg.sender]);
         _totalSupply += quantidade;
         _balances[msg.sender] += quantidade;
 
@@ -159,6 +171,36 @@ contract PropertyToken is AccessControl, Pausable, ReentrancyGuard {
         return _totalSupply;
     }
 
+    // ---- Snapshot (suporte a DividendDistributor, feature 003) ----
+
+    /// @notice Abre um novo snapshot dos saldos, retornando seu id. Chamado pelo
+    /// `DividendDistributor` no início de cada ciclo de distribuição, para que
+    /// `balanceOfAt` reflita o saldo de cada holder naquele momento,
+    /// independentemente de transferências futuras.
+    function snapshot() external onlyRole(SNAPSHOT_ROLE) returns (uint256) {
+        _currentSnapshotId += 1;
+        emit SnapshotCriado(_currentSnapshotId);
+        return _currentSnapshotId;
+    }
+
+    function currentSnapshotId() external view returns (uint256) {
+        return _currentSnapshotId;
+    }
+
+    /// @notice Saldo de `conta` no momento em que o snapshot `snapshotId` foi
+    /// tirado — não muda com transferências posteriores a esse snapshot.
+    function balanceOfAt(address conta, uint256 snapshotId) external view returns (uint256) {
+        if (snapshotId == 0 || snapshotId > _currentSnapshotId) revert SnapshotInvalido(snapshotId);
+
+        // Se não há checkpoint a partir de `snapshotId`, o saldo não mudou desde
+        // então — o saldo atual já é o valor histórico correto.
+        (bool existe, uint256 ultimaChave,) = _balanceCheckpoints[conta].latestCheckpoint();
+        if (!existe || ultimaChave < snapshotId) {
+            return _balances[conta];
+        }
+        return _balanceCheckpoints[conta].upperLookup(snapshotId);
+    }
+
     // ---- Internas ----
 
     function _transferirComCompliance(address de, address para, uint256 quantidade) private {
@@ -168,6 +210,9 @@ contract PropertyToken is AccessControl, Pausable, ReentrancyGuard {
         if (!complianceModule.canTransfer(de, para, quantidade)) {
             revert ComplianceNaoVerificado(complianceModule.motivoBloqueio(de, para));
         }
+
+        _writeCheckpoint(_balanceCheckpoints[de], saldoDe);
+        _writeCheckpoint(_balanceCheckpoints[para], _balances[para]);
 
         _balances[de] = saldoDe - quantidade;
         _balances[para] += quantidade;
@@ -181,5 +226,16 @@ contract PropertyToken is AccessControl, Pausable, ReentrancyGuard {
         uint256 permitido = _allowances[proprietario][spender];
         if (quantidade > permitido) revert PermissaoInsuficiente(proprietario, spender, quantidade, permitido);
         _allowances[proprietario][spender] = permitido - quantidade;
+    }
+
+    /// @notice Registra `valorAntesDaMudanca` no snapshot atual, se ainda não
+    /// houver um checkpoint para ele — captura o saldo exatamente como estava
+    /// no momento em que o snapshot foi tirado, antes desta mutação.
+    function _writeCheckpoint(Checkpoints.Trace256 storage checkpoints, uint256 valorAntesDaMudanca) private {
+        if (_currentSnapshotId == 0) return;
+        (bool existe, uint256 ultimaChave,) = checkpoints.latestCheckpoint();
+        if (!existe || ultimaChave < _currentSnapshotId) {
+            checkpoints.push(_currentSnapshotId, valorAntesDaMudanca);
+        }
     }
 }

@@ -36,6 +36,7 @@ contract PropertyTokenTest is Test {
     address investidorVerificado = makeAddr("investidorVerificado");
     address investidorNaoVerificado = makeAddr("investidorNaoVerificado");
     address estranho = makeAddr("estranho");
+    address distribuidor = makeAddr("distribuidor");
 
     bytes32 constant KYC_TOPIC = keccak256("KYC_APPROVED");
 
@@ -63,6 +64,7 @@ contract PropertyTokenTest is Test {
             tesouraria,
             admin
         );
+        token.grantRole(token.SNAPSHOT_ROLE(), distribuidor);
         vm.stopPrank();
 
         vm.prank(issuer);
@@ -298,5 +300,100 @@ contract PropertyTokenTest is Test {
             abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, estranho, role)
         );
         token.pausar();
+    }
+
+    // ---- Snapshot (suporte a DividendDistributor, feature 003) ----
+    //
+    // A spec de DividendDistributor (contracts/dividend-distributor.md) exige um
+    // snapshot dos saldos "inspirado em ERC20Snapshot" para o cálculo de RF-12,
+    // sem que a feature 002 tivesse previsto isso. Adicionado aqui via
+    // Checkpoints (OZ) — snapshot() é restrito a SNAPSHOT_ROLE, concedido ao
+    // DividendDistributor de cada imóvel.
+
+    function test_snapshot_apenasSnapshotRole() public {
+        bytes32 role = token.SNAPSHOT_ROLE();
+
+        vm.prank(estranho);
+        vm.expectRevert(
+            abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, estranho, role)
+        );
+        token.snapshot();
+    }
+
+    function test_snapshot_incrementaId() public {
+        assertEq(token.currentSnapshotId(), 0);
+
+        vm.prank(distribuidor);
+        uint256 id1 = token.snapshot();
+        assertEq(id1, 1);
+        assertEq(token.currentSnapshotId(), 1);
+
+        vm.prank(distribuidor);
+        uint256 id2 = token.snapshot();
+        assertEq(id2, 2);
+        assertEq(token.currentSnapshotId(), 2);
+    }
+
+    function test_balanceOfAt_refleteSaldoNoMomentoDoSnapshot() public {
+        vm.prank(investidorVerificado);
+        token.comprarCotas(10);
+
+        vm.prank(distribuidor);
+        uint256 snapshotId = token.snapshot();
+
+        assertEq(token.balanceOfAt(investidorVerificado, snapshotId), 10);
+    }
+
+    /// Cenário "Transferência de cota entre ciclos" (spec.md, feature 003):
+    /// vender a cota após o snapshot não muda o saldo histórico daquele ciclo.
+    function test_balanceOfAt_naoMudaComTransferenciasPosteriores() public {
+        vm.prank(issuer);
+        identityRegistry.emitirClaim(estranho, KYC_TOPIC, "assinatura-estranho");
+
+        vm.prank(investidorVerificado);
+        token.comprarCotas(10);
+
+        vm.prank(distribuidor);
+        uint256 snapshotId = token.snapshot();
+
+        vm.prank(investidorVerificado);
+        token.transfer(estranho, 10);
+
+        assertEq(token.balanceOfAt(investidorVerificado, snapshotId), 10);
+        assertEq(token.balanceOfAt(estranho, snapshotId), 0);
+        assertEq(token.balanceOf(investidorVerificado), 0);
+        assertEq(token.balanceOf(estranho), 10);
+    }
+
+    function test_balanceOfAt_refleteMudancasEntreSnapshotsDiferentes() public {
+        vm.prank(investidorVerificado);
+        token.comprarCotas(10);
+
+        vm.prank(distribuidor);
+        uint256 snapshot1 = token.snapshot();
+
+        vm.prank(investidorVerificado);
+        token.comprarCotas(5);
+
+        vm.prank(distribuidor);
+        uint256 snapshot2 = token.snapshot();
+
+        assertEq(token.balanceOfAt(investidorVerificado, snapshot1), 10);
+        assertEq(token.balanceOfAt(investidorVerificado, snapshot2), 15);
+    }
+
+    function test_balanceOfAt_revertSeSnapshotInvalido() public {
+        vm.expectRevert(abi.encodeWithSelector(PropertyToken.SnapshotInvalido.selector, 0));
+        token.balanceOfAt(investidorVerificado, 0);
+
+        vm.expectRevert(abi.encodeWithSelector(PropertyToken.SnapshotInvalido.selector, 1));
+        token.balanceOfAt(investidorVerificado, 1);
+    }
+
+    function test_balanceOfAt_zeroParaQuemNuncaTeveSaldoNoSnapshot() public {
+        vm.prank(distribuidor);
+        uint256 snapshotId = token.snapshot();
+
+        assertEq(token.balanceOfAt(investidorVerificado, snapshotId), 0);
     }
 }
