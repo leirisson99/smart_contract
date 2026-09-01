@@ -1,0 +1,227 @@
+@import "tailwindcss";
+
+/* Design system "Patrimônio Digital" (Stitch — projects/2192841666711134925) */
+:root {
+  --color-primary: #0a2540;
+  --color-primary-container: #0a2540;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #ffffff;
+
+  --color-secondary: #00875a;
+  --color-secondary-container: #8af5be;
+  --color-on-secondary: #ffffff;
+  --color-on-secondary-container: #00714b;
+
+  --color-surface: #f7fafd;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f1f4f7;
+  --color-surface-container: #ebeef1;
+  --color-surface-container-high: #e5e8eb;
+  --color-surface-container-highest: #e0e3e6;
+
+  --color-on-surface: #181c1e;
+  --color-on-surface-variant: #43474d;
+  --color-outline: #74777e;
+  --color-outline-variant: #c4c6ce;
+
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error: #ffffff;
+  --color-on-error-container: #93000a;
+
+  --color-warning: #b45309;
+  --color-warning-container: #fef3c7;
+  --color-on-warning-container: #78350f;
+
+  --color-background: var(--color-surface);
+  --color-foreground: var(--color-on-surface);
+}
+
+@theme inline {
+  --color-primary: var(--color-primary);
+  --color-primary-container: var(--color-primary-container);
+  --color-on-primary: var(--color-on-primary);
+  --color-on-primary-container: var(--color-on-primary-container);
+
+  --color-secondary: var(--color-secondary);
+  --color-secondary-container: var(--color-secondary-container);
+  --color-on-secondary: var(--color-on-secondary);
+  --color-on-secondary-container: var(--color-on-secondary-container);
+
+  --color-surface: var(--color-surface);
+  --color-surface-container-lowest: var(--color-surface-container-lowest);
+  --color-surface-container-low: var(--color-surface-container-low);
+  --color-surface-container: var(--color-surface-container);
+  --color-surface-container-high: var(--color-surface-container-high);
+  --color-surface-container-highest: var(--color-surface-container-highest);
+
+  --color-on-surface: var(--color-on-surface);
+  --color-on-surface-variant: var(--color-on-surface-variant);
+  --color-outline: var(--color-outline);
+  --color-outline-variant: var(--color-outline-variant);
+
+  --color-error: var(--color-error);
+  --color-error-container: var(--color-error-container);
+  --color-on-error: var(--color-on-error);
+  --color-on-error-container: var(--color-on-error-container);
+
+  --color-warning: var(--color-warning);
+  --color-warning-container: var(--color-warning-container);
+  --color-on-warning-container: var(--color-on-warning-container);
+
+  --color-background: var(--color-background);
+  --color-foreground: var(--color-foreground);
+
+  --font-sans: var(--font-inter);
+
+  /* Escala tipográfica do design system (peso/tracking aplicados via utilities normais) */
+  --text-display-lg: 3rem;
+  --text-display-lg--line-height: 1.25;
+  --text-headline-lg: 2rem;
+  --text-headline-lg--line-height: 1.25;
+  --text-headline-lg-mobile: 1.5rem;
+  --text-headline-lg-mobile--line-height: 1.333;
+  --text-title-md: 1.25rem;
+  --text-title-md--line-height: 1.4;
+  --text-body-lg: 1.125rem;
+  --text-body-lg--line-height: 1.556;
+  --text-body-md: 1rem;
+  --text-body-md--line-height: 1.5;
+  --text-label-sm: 0.875rem;
+  --text-label-sm--line-height: 1.428;
+  --text-mono-label: 0.75rem;
+  --text-mono-label--line-height: 1.333;
+
+  --shadow-card: 0px 4px 20px rgba(10, 37, 64, 0.08);
+
+  /* Tremor animations */
+  --animate-hide: hide 150ms cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-down-and-fade: slideDownAndFade 150ms
+    cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-left-and-fade: slideLeftAndFade 150ms
+    cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-up-and-fade: slideUpAndFade 150ms
+    cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-slide-right-and-fade: slideRightAndFade 150ms
+    cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-accordion-open: accordionOpen 150ms cubic-bezier(0.87, 0, 0.13, 1);
+  --animate-accordion-close: accordionClose 150ms
+    cubic-bezier(0.87, 0, 0.13, 1);
+  --animate-dialog-overlay-show: dialogOverlayShow 150ms
+    cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-dialog-content-show: dialogContentShow 150ms
+    cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-drawer-slide-left-and-fade: drawerSlideLeftAndFade 150ms
+    cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-drawer-slide-right-and-fade: drawerSlideRightAndFade 150ms
+    ease-in;
+
+  @keyframes hide {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes slideDownAndFade {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes slideLeftAndFade {
+    from {
+      opacity: 0;
+      transform: translateX(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes slideUpAndFade {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes slideRightAndFade {
+    from {
+      opacity: 0;
+      transform: translateX(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes accordionOpen {
+    from {
+      height: 0px;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordionClose {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0px;
+    }
+  }
+  @keyframes dialogOverlayShow {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes dialogContentShow {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -45%) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+  @keyframes drawerSlideLeftAndFade {
+    from {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes drawerSlideRightAndFade {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+  }
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}

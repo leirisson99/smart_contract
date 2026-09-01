@@ -1,0 +1,18 @@
+import "dotenv/config";
+
+function required(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`Missing required env var: ${name}`);
+  }
+  return value;
+}
+
+export const config = {
+  port: Number(process.env.PORT ?? 3000),
+  rpcUrl: required("RPC_URL"),
+  chainId: Number(process.env.CHAIN_ID ?? 31337),
+  identityRegistryAddress: required("IDENTITY_REGISTRY_ADDRESS") as `0x${string}`,
+  trustedIssuerPrivateKey: required("TRUSTED_ISSUER_PRIVATE_KEY") as `0x${string}`,
+  walletEncKey: required("WALLET_ENC_KEY"),
+};

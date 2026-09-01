@@ -1,0 +1,31 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Investor {
+  id            String         @id @default(uuid())
+  fullName      String
+  cpfEncrypted  String
+  walletAddress String         @unique
+  walletKeyEnc  String
+  createdAt     DateTime       @default(now())
+  kyc           KycSubmission?
+}
+
+model KycSubmission {
+  id                String   @id @default(uuid())
+  investorId        String   @unique
+  investor          Investor @relation(fields: [investorId], references: [id])
+  status            String   @default("PENDING")
+  provider          String
+  providerReference String?
+  rejectionReason   String?
+  claimTxHash       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
