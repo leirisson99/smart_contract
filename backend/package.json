@@ -11,7 +11,8 @@
     "test": "vitest run",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "grant-trusted-issuer": "tsx scripts/grant-trusted-issuer.ts"
+    "grant-trusted-issuer": "tsx scripts/grant-trusted-issuer.ts",
+    "run-yield-claim-job": "tsx scripts/run-yield-claim-job.ts"
   },
   "keywords": [],
   "dependencies": {

@@ -20,7 +20,7 @@ Consolida os itens `SEC-XX` levantados nos `risks.md` de cada feature. Critério
 | SEC-08 | Bypass de compliance em transferências (inclusive no marketplace) | 001, 004 | Toda transferência, incluindo as do `Marketplace`, passa obrigatoriamente por `ComplianceModule.canTransfer` | mitigado |
 | SEC-09 | Auditabilidade insuficiente | todas | Evento emitido para toda mudança de estado relevante (mint, transfer, claim, listagem, compra, mudança de compliance) | mitigado |
 | SEC-10 | Exposição de dados pessoais (PII) on-chain | 001 | Apenas claims booleanas/categorizadas on-chain, nunca CPF/documento (ADR-0006) | mitigado |
-| SEC-11 | Chave do Trusted Issuer (provedor de KYC) comprometida | 001 | Chave em hardware wallet/multisig; processo de rotação documentado | parcialmente mitigado |
+| SEC-11 | Chave do Trusted Issuer comprometida — hoje operada pelo backend da plataforma, não por um provedor de KYC (ver [ADR-0006](decisions/ADR-0006-fronteira-onchain-offchain-kyc.md), seção "Atualização") | 001 | Chave em hardware wallet/multisig; processo de rotação documentado | parcialmente mitigado |
 | SEC-12 | Access control de criação de novos imóveis (Factory) | 002 | `PLATFORM_ADMIN_ROLE` restrito, idealmente multisig, para `PropertyFactory.criarImovel` | mitigado |
 
 **Ferramentas obrigatórias antes da auditoria externa:**

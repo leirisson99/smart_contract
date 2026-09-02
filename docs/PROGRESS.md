@@ -1,19 +1,22 @@
 ---
 status: living-document
 owner: tech-lead
-last_updated: 2026-08-21
+last_updated: 2026-09-02
 ---
 
 # Progresso do Projeto — Log de Execução
 
 > Registro cronológico do que já foi **implementado, testado e verificado**. Complementa `plan.md` (índice do pacote de specs) e `sprints/` (planejamento) — aqui fica o que de fato foi feito, para qualquer pessoa (ou sessão futura) retomar o contexto rapidamente. Atualizar a cada marco relevante, não a cada commit.
 
-## Estado atual (2026-08-22)
+## Estado atual (2026-09-01)
 
 - **Sprints 1-3**: os 6 contratos da POC (`IdentityRegistry`, `ComplianceModule`, `PropertyToken`, `PropertyFactory`, `DividendDistributor`, `Marketplace`) estão implementados e testados — 110/110 testes, 100% de cobertura de linhas/branches/funções em todo `src/*.sol`.
 - **Sprint 4 — análise estática e dinâmica concluídas**: Slither rodado e triado (22 → 9 findings, os 9 restantes justificados como falso positivo/risco aceito, 13 corrigidos no código com testes novos — [`slither-triage.md`](on-chain/slither-triage.md)); Mythril rodado nos 6 contratos, **0 findings em todos** — [`mythril-triage.md`](on-chain/mythril-triage.md). `SEC-11` passou de `pendente` para `parcialmente mitigado` — processo de rotação documentado.
 - **Checklist de segurança**: 11/12 itens `mitigado`, `SEC-11` `parcialmente mitigado` (só falta a custódia real da chave, que depende da contratação do provedor de KYC — decisão de negócio ainda em aberto).
 - **Pendente** (bloqueado por insumos externos, não por código, confirmado com o usuário em 2026-08-21): fork test/deploy na testnet Polygon Amoy (falta RPC + MATIC de teste), contratação do provedor de KYC. Nenhum dos dois bloqueia mais o fechamento técnico da Sprint 4.
+- **Backend `001-onboarding-e-custodia`**: specs reconciliadas com o código real em 2026-09-02 (Sprint 5) — ver entrada de linha do tempo abaixo. `status: approved` nas 5 specs de backend.
+- **Backend `002-investimento-primario` + `003-portfolio-e-rendimentos`**: implementados e testados em 2026-09-02 (Sprint 6) — endpoints de imóvel/compra/portfólio + job de claim automático, verificados com um teste e2e real contra Anvil local. Ver entrada de linha do tempo abaixo.
+- **Frontend `001-interface-investidor` (UI mockada)**: as 7 telas do inventário da spec (Cadastro/KYC, Imóveis, Detalhes do Imóvel, Sucesso na Compra, Portfólio, Mercado Secundário, Painel do Gestor) implementadas em `frontend/`, usando o design system "Patrimônio Digital" gerado no Stitch (adotado como definitivo — `docs/frontend/design-system-brief.md` passou a `approved`). Consome uma camada de API mockada (`frontend/lib/api/`), não o backend real — ver detalhe abaixo.
 
 ## Linha do tempo
 
@@ -174,10 +177,138 @@ Lista completa e atualizada em [`PENDENCIAS.md`](PENDENCIAS.md). Resumo: fork te
   mitigado (exceto a parte de custódia de `SEC-11`, que é bloqueio de negócio, não de código) e as duas
   análises (estática e dinâmica) recomendadas antes da auditoria externa foram executadas e triadas.
 
+### 2026-09-01 — Frontend `001-interface-investidor`: UI mockada com design system do Stitch
+
+- Design system "Patrimônio Digital" (Deep Navy `#0a2540` + Verde Esmeralda `#00875a`, Inter) gerado no
+  Stitch (projeto "Plataforma de Tokenização Imobiliária") adotado como definitivo, fechando a decisão de
+  paleta/tipografia que estava em aberto em [`docs/frontend/design-system-brief.md`](frontend/design-system-brief.md)
+  (`status` passou de `draft` para `approved`). Tokens implementados em `frontend/app/globals.css` via `@theme`
+  do Tailwind v4.
+- ~25 componentes reutilizáveis criados em `frontend/components/{ui,layout,feedback,kyc,property,portfolio,marketplace,admin}/`,
+  seguindo o padrão `tailwind-variants` já usado no `Button` original do scaffold.
+- Camada de dados mockada em `frontend/lib/api/` (`kyc`, `imoveis`, `portfolio`, `marketplace`, `admin`),
+  espelhando os contratos descritos em `frontend/features/001-interface-investidor/integration.md` — usada
+  porque só a feature backend `001-onboarding-e-custodia` tem código real; `002` a `005` seguem em `draft`.
+  Troca por chamadas reais ao backend fica mecânica quando essas features avançarem. `frontend/lib/errors.ts`
+  centraliza a tradução de erros técnicos em mensagens pt-BR (RF-32).
+- 6 rotas via App Router (route groups `(investidor)` e `(admin)`) cobrindo as 7 telas do inventário da spec
+  e RF-27 a RF-32: `/cadastro`, `/imoveis`, `/imoveis/[id]` (com estado de sucesso da compra), `/portfolio`,
+  `/mercado-secundario`, `/admin`. Botão transacional com estados `idle → processando → sucesso/erro` (RNF-15)
+  em `components/feedback/transactional-button.tsx`.
+- **Bug encontrado e corrigido durante a verificação**: `tailwind-variants`/`tailwind-merge` descartava a
+  classe de cor `text-on-primary` por confundi-la com o token de tamanho `text-body-md` (ambos com prefixo
+  `text-`, ambos tokens customizados) — todo botão primário renderizava com texto quase invisível (herdava a
+  cor do body em vez de branco). Corrigido registrando os tokens customizados do design system via
+  `createTV`/`extendTailwindMerge` em `frontend/lib/tv.ts` e `frontend/lib/utils.ts`.
+- Verificação ponta a ponta com Playwright (Chromium headless, sem `chromium-cli`/skill de projeto disponíveis
+  neste ambiente Windows): jornada completa cadastro → aprovação assíncrona de KYC → compra de cota → tela de
+  sucesso → portfólio → resgate de rendimento → mercado secundário → criar listagem → painel do gestor, em
+  viewport desktop e mobile (bottom nav sticky confirmado), sem erros de console/hidratação.
+- `npm run build` e `npm run lint` limpos (só 2 warnings esperados de parâmetros não usados no stub mock de
+  `depositarRendimento`).
+- Sem migração para Base UI (mencionada em `design-system-brief.md`, mas as pastas
+  `frontend/.claude/skills/{shadcn,migrate-radix-to-base}/` estão vazias, sem `SKILL.md`) — decisão
+  arquitetural separada, fora deste escopo.
+
+### 2026-09-02 — Sprint 5: reconciliação e aprovação das especificações de backend
+
+- `docs/backend/features/001-onboarding-e-custodia/{spec,plan,tasks,implement}.md` reconciliados com o código
+  real de `backend/src/` (Fastify + Prisma + viem, já implementado desde 2026-09-01 fora do fluxo SDD formal):
+  RF-33 passou a declarar que **o próprio backend** (não o provedor de KYC) emite a claim on-chain
+  `IdentityRegistry.emitirClaim`, atuando como Trusted Issuer — desvio deliberado do desenho original, já que
+  nenhum dos 3 candidatos a provedor de KYC avaliados (`PENDENCIAS.md`) assina claims on-chain nativamente;
+  RNF-11 passou a declarar o estado atual (chaves cifradas com AES-256-GCM via `WALLET_ENC_KEY` de `.env`,
+  stub explícito em `walletCustody.ts`) como aceito nesta fase da POC; tasks 3, 4 e 6 marcadas `[x]`
+  (endpoint de cadastro, orquestração de KYC/webhook e 8 testes vitest já implementados e passando); tasks 1
+  (dividida em 1a/1b), 2, 5 e 7 mantidas em aberto com escopo expandido a partir dos gaps encontrados nesta
+  reconciliação (nenhuma rota tem autenticação hoje; `GET /investors/:id/kyc` lê o banco, não
+  `isVerifiedOnChain`). Spec passou de `draft` para `approved`.
+- `docs/on-chain/decisions/ADR-0006-fronteira-onchain-offchain-kyc.md`: nova seção "Atualização" formaliza o
+  backend como Trusted Issuer na POC, documenta o trade-off de risco aceito (chave em `.env`, sem HSM/multisig
+  ainda) e o plano de migração para HSM/KMS antes de qualquer captação de investidores de varejo. `SEC-11` em
+  `on-chain/security-checklist.md` atualizado para refletir que a chave é operada pelo backend, não por um
+  provedor de KYC.
+- `docs/backend/features/{002,003,004,005}-*/spec.md` revisadas e aprovadas: adicionados cenários
+  Dado/Quando/Então que faltavam (revalidação de KYC/saldo revogado on-chain em 002, comportamento de falha
+  parcial do job de claim em 003, rejeição por KYC ausente em 004, rejeição por role inválida em 005),
+  nomeados os códigos de erro esperados de cada endpoint, e explicitado que 005 depende só dos **contratos**
+  on-chain de 002/003 (já prontos), não do backend 002/003 (que só saem de draft agora).
+- `docs/backend/api-contract.md` criado: consolida os endpoints de todas as 5 features e o vocabulário de 8
+  códigos de erro já consumido por `frontend/lib/errors.ts` (`SEM_KYC`, `KYC_REPROVADO`,
+  `COTAS_INSUFICIENTES`, `VALOR_MINIMO_NAO_ATINGIDO`, `LISTAGEM_JA_VENDIDA`, `LISTAGEM_NAO_ENCONTRADA`,
+  `SALDO_INSUFICIENTE`, `ERRO_DESCONHECIDO`) — destrava a task 5 de `001`. Gap conhecido registrado: os
+  handlers atuais de `001` ainda respondem com strings livres, não com esse formato; alinhar é trabalho de
+  código futuro.
+- `docs/sprints/{05,06,07,08}-*.md` criados, quebrando a trilha de Backend em sprints pela primeira vez
+  (antes só existiam `tasks.md` por feature, sem sprint): Sprint 5 (esta, reconciliação — `done`), Sprint 6
+  (`002`+`003`, paralelizáveis entre si), Sprint 7 (`004`, isolada por introduzir o primeiro fluxo entre duas
+  carteiras custodiais — pode rodar em paralelo à 6), Sprint 8 (`005` + autenticação/RBAC transversal,
+  hoje ausente em toda a API, + revisão de segurança off-chain). `docs/sprints/00-visao-geral.md` atualizado
+  para listar as duas trilhas (Smart Contract 1-4, Backend 5-8).
+- Todas essas mudanças foram só de documentação — nenhum código de `backend/` foi alterado nesta sprint.
+
+### 2026-09-02 — Sprint 6: investimento primário + portfólio e rendimentos (backend)
+
+- **`002-investimento-primario`**: `backend/src/routes/imoveis.ts` + `backend/src/services/propertyChain.ts`
+  (novo). `GET /imoveis`/`GET /imoveis/:id` leem os dados financeiros (nome, preço por cota, cotas
+  disponíveis, total emitido) ao vivo do `PropertyToken` on-chain via viem — nunca cacheados no banco, só
+  metadados de UX (imagem, rendimento estimado, status, valor mínimo) ficam no novo model Prisma `Property`.
+  `POST /imoveis/:id/comprar` revalida KYC direto on-chain (`isVerifiedOnChain`, não o status gravado pela
+  feature 001 — RNF-16) e saldo/valor mínimo no momento da chamada, aprova a moeda de pagamento e assina
+  `comprarCotas` com a chave da carteira custodial do investidor; grava o resultado no novo ledger
+  `Investment` (usado depois pelo portfólio para calcular valor investido, já que o contrato não rastreia
+  isso). Falha on-chain devolvida como `502 { codigo: "ERRO_DESCONHECIDO" }`.
+- **`003-portfolio-e-rendimentos`**: `backend/src/routes/portfolio.ts` (`GET /investors/:id/portfolio`) agrega
+  cotas (via `balanceOf` on-chain), valor investido (soma do ledger `Investment`) e histórico de rendimentos
+  (novo ledger `YieldClaim`). `backend/src/services/yieldClaimJob.ts` + `backend/scripts/run-yield-claim-job.ts`
+  implementam o job de claim automático (RF-24): tenta `DividendDistributor.claimTodos` em lote por
+  investidor, com fallback para `claim` individual por ciclo se o lote reverter; falha isolada (de um ciclo ou
+  de um investidor) nunca trava o processamento dos demais (testado explicitamente). A constraint única
+  `(investorId, propertyId, cicloId)` em `YieldClaim` garante idempotência do job mesmo se reexecutado.
+- **Descoberta durante a implementação (não prevista em nenhuma spec anterior)**: carteiras custodiais nascem
+  com saldo zero de ETH — como `comprarCotas`/`claim` são assinados pela própria carteira do investidor, a
+  primeira transação de qualquer investidor falhava por falta de gas (só descoberto rodando o e2e real contra
+  Anvil; os testes unitários mockam a chain e não pegam isso). Resolvido com um novo serviço
+  `backend/src/services/gasSponsor.ts`: o backend financia a carteira do investidor com um valor fixo de ETH,
+  a partir de uma conta própria (`GAS_SPONSOR_PRIVATE_KEY`, novo env var), sempre que o saldo cair abaixo de um
+  limiar — documentado em `docs/backend/features/001-onboarding-e-custodia/plan.md` como parte do componente
+  de custódia.
+- **Infraestrutura de teste nova**: `projeto_imobiliaria/script/DeployPropertyPipeline.s.sol` — deploy local
+  (Anvil) de uma moeda de teste (`MockERC20`), da `PropertyFactory`, de um imóvel de exemplo já criado via
+  `criarImovel`, e do `DividendDistributor` desse imóvel, com os papéis on-chain já concedidos. Rodado uma vez
+  contra o Anvil local desta máquina para gerar endereços reais e verificar o fluxo ponta a ponta.
+- **Correção de infraestrutura pré-existente**: `backend/tsconfig.json` tinha `module`/`moduleResolution`
+  incompatíveis com `import ... with { type: "json" }` (usado desde a feature 001 para carregar ABIs) — `tsc
+  --noEmit` já falhava antes desta sprint, só ninguém tinha rodado (só `tsx`/`vitest` eram usados, que toleram
+  isso em runtime). Corrigido para `NodeNext`/`NodeNext`, consistente com `"type": "module"` do `package.json`.
+  `npm run build` e `tsc --noEmit` confirmados limpos.
+- **Correção de teste**: adicionado `onDelete: Cascade` nas relações de `KycSubmission`, `Investment` e
+  `YieldClaim` com `Investor`/`Property` (nova migration) — sem isso, a ordem de `deleteMany()` no `beforeEach`
+  de cada arquivo de teste precisava conhecer as tabelas criadas por *outros* arquivos, o que já quebrou ao
+  adicionar os novos testes desta sprint.
+- **Testes**: `test/imoveis.routes.test.ts` (6), `test/portfolio.routes.test.ts` (3), `test/yieldClaimJob.test.ts`
+  (4) — unitários, mockando a chain. `test/property-flow.e2e.test.ts` (1, gated por `RUN_E2E=1`) — rodado
+  contra o Anvil local real desta máquina: cadastro → KYC aprovado (claim real on-chain) → compra real de
+  cotas → portfólio refletindo o holding → depósito de rendimento real (via viem, já que o endpoint
+  administrativo de 005 não existe ainda) → job de claim automático real → portfólio refletindo o rendimento
+  recebido. Suíte completa (unit + os 2 e2e): 22/22 passando.
+- Pendente (não bloqueante, mesmo padrão da trilha on-chain): teste/deploy em testnet Polygon Amoy — só
+  verificado contra Anvil local nesta sessão.
+
 ## Próximos passos
 
-- **Sprint 4 (restante — todos bloqueios de negócio, não de código)**: congelar tag de release para envio à
-  auditoria (`git tag -a v0.4.0-audit`, ver `on-chain/audit-package.md`); contratar a auditoria externa; deploy
-  real em testnet Amoy (falta RPC + MATIC de faucet); contratar o provedor de KYC (destrava a custódia real de
-  `SEC-11`).
-- **Próxima trilha**: com a Sprint 4 tecnicamente fechada, a trilha de Backend (`backend/features`, repositório irmão — quebrada em 5 features em 2026-09-01: `001-onboarding-e-custodia`, `002-investimento-primario`, `003-portfolio-e-rendimentos`, `004-mercado-secundario`, `005-painel-administrativo`) pode começar a ser refinada em spec (ainda `draft`, precisa virar `approved` antes de qualquer código, por SDD) — ver `sprints/00-visao-geral.md` sobre isso ainda não estar quebrado em sprints.
+- **Sprint 4 on-chain (restante — todos bloqueios de negócio, não de código)**: congelar tag de release para
+  envio à auditoria (`git tag -a v0.4.0-audit`, ver `on-chain/audit-package.md`); contratar a auditoria
+  externa; deploy real em testnet Amoy (falta RPC + MATIC de faucet); contratar o provedor de KYC (destrava a
+  custódia real de `SEC-11`, agora também rastreada como task 1b em `backend/features/001.../tasks.md`).
+- **Sprint 6 (backend, restante)**: teste/deploy em testnet Polygon Amoy (bloqueio externo, não de código —
+  mesmo item da trilha on-chain).
+- **Sprint 7 (backend)**: implementar `004-mercado-secundario`, paralelizável à Sprint 6. Ver
+  `docs/sprints/07-mercado-secundario.md`.
+- **Sprint 8 (backend)**: implementar `005-painel-administrativo` e introduzir autenticação/RBAC em toda a
+  API (gap hoje presente até em `001`). Ver `docs/sprints/08-painel-administrativo-e-seguranca-backend.md`.
+- **Frontend**: quando as features de backend `002-005` tiverem código real, trocar a camada mockada de
+  `frontend/lib/api/` por chamadas reais (as assinaturas de função já espelham os contratos de
+  `integration.md`/`docs/backend/api-contract.md`, então a troca é mecânica). Revisão de acessibilidade mais
+  profunda (navegação por teclado em todos os formulários, leitores de tela) ainda não foi feita — só
+  verificação visual/funcional via Playwright.

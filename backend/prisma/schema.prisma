@@ -15,12 +15,14 @@ model Investor {
   walletKeyEnc  String
   createdAt     DateTime       @default(now())
   kyc           KycSubmission?
+  investments   Investment[]
+  yieldClaims   YieldClaim[]
 }
 
 model KycSubmission {
   id                String   @id @default(uuid())
   investorId        String   @unique
-  investor          Investor @relation(fields: [investorId], references: [id])
+  investor          Investor @relation(fields: [investorId], references: [id], onDelete: Cascade)
   status            String   @default("PENDING")
   provider          String
   providerReference String?
@@ -28,4 +30,55 @@ model KycSubmission {
   claimTxHash       String?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+}
+
+/// Metadados off-chain de um imovel (feature 002/005) - dados financeiros
+/// (precoPorCota, totalCotas, cotasDisponiveis) NAO sao duplicados aqui:
+/// sao lidos ao vivo do PropertyToken on-chain a cada request, para nunca
+/// divergir da fonte da verdade (o contrato). Aqui fica so o que o contrato
+/// nao guarda (imagem, status de UX, rendimento estimado, valor minimo).
+model Property {
+  id                         String       @id @default(uuid())
+  propertyTokenAddress       String       @unique
+  dividendDistributorAddress String      @unique
+  imagemUrl                  String?
+  rendimentoEstimadoAnual    Float
+  status                     String       @default("EM_CAPTACAO")
+  valorMinimoInvestimento    String
+  createdAt                  DateTime     @default(now())
+  investments                Investment[]
+  yieldClaims                YieldClaim[]
+}
+
+/// Ledger de compras primarias (RF-22). cotas/valorPago sao o registro do
+/// que foi de fato executado on-chain (comprarCotas) - usado para calcular
+/// "valor investido" no portfolio (003), que o contrato nao rastreia.
+model Investment {
+  id         String   @id @default(uuid())
+  investorId String
+  investor   Investor @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  cotas      Int
+  valorPago  String
+  txHash     String
+  createdAt  DateTime @default(now())
+}
+
+/// Registro de cada claim de rendimento executado pelo job automatico
+/// (RF-24). A constraint unica (investor+property+ciclo) garante, junto com
+/// `jaReivindicou` on-chain, que o job nunca conta o mesmo ciclo duas vezes
+/// mesmo se rodar concorrentemente ou for reexecutado apos falha parcial.
+model YieldClaim {
+  id         String   @id @default(uuid())
+  investorId String
+  investor   Investor @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  cicloId    Int
+  valor      String
+  txHash     String
+  claimedAt  DateTime @default(now())
+
+  @@unique([investorId, propertyId, cicloId])
 }

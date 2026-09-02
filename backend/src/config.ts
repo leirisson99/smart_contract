@@ -15,4 +15,5 @@ export const config = {
   identityRegistryAddress: required("IDENTITY_REGISTRY_ADDRESS") as `0x${string}`,
   trustedIssuerPrivateKey: required("TRUSTED_ISSUER_PRIVATE_KEY") as `0x${string}`,
   walletEncKey: required("WALLET_ENC_KEY"),
+  gasSponsorPrivateKey: required("GAS_SPONSOR_PRIVATE_KEY") as `0x${string}`,
 };

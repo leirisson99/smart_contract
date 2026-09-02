@@ -1,5 +1,17 @@
 import clsx, { type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { extendTailwindMerge } from "tailwind-merge"
+import { colorTokens, fontSizeTokens } from "./design-tokens"
+
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      "text-color": [{ text: colorTokens }],
+      "bg-color": [{ bg: colorTokens }],
+      "border-color": [{ border: colorTokens }],
+      "font-size": [{ text: fontSizeTokens }],
+    },
+  },
+})
 
 // Tremor cx [v0.0.0]
 export function cx(...args: ClassValue[]) {

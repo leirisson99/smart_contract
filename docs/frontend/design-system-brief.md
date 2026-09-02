@@ -1,12 +1,24 @@
 ---
-status: draft
+status: approved
 owner: tech-lead
 last_updated: 2026-09-01
 ---
 
 # Referência para Design System — Frontend
 
-> Este documento **não** é o design system. É a referência que um agente deve consultar antes de propor tokens, componentes e telas para `frontend/`. Reúne o que já está decidido (produto, requisitos, stack) e sinaliza o que ainda é decisão em aberto (paleta, tipografia, tom visual final).
+> Este documento **não** é o design system. É a referência que um agente deve consultar antes de propor tokens, componentes e telas para `frontend/`. Reúne o que já está decidido (produto, requisitos, stack, paleta e tipografia).
+
+## Decisão de paleta e tipografia (fechada em 2026-09-01)
+
+Gerado no Stitch — projeto ["Plataforma de Tokenização Imobiliária"](https://stitch.withgoogle.com) (`projects/2192841666711134925`), design system **"Patrimônio Digital"**, adotado como definitivo e já implementado em `frontend/app/globals.css` (tokens `@theme`) e `frontend/components/ui/`.
+
+- **Cor primária (Deep Navy)**: `#0a2540` — navegação, headers, botões primários.
+- **Cor secundária (Verde Esmeralda)**: `#00875a` — ações de "Investir"/"Confirmar", indicadores de crescimento, sucesso.
+- **Neutros/superfícies**: escala de cinza-azulado (`#f7fafd` → `#181c1e`), sem dark mode (fora de escopo do RNF-14).
+- **Tipografia**: Inter, escala `display-lg`/`headline-lg`/`title-md`/`body-lg`/`body-md`/`label-sm`/`mono-label` (ver `globals.css`).
+- **Forma**: raio 4px (inputs/botões), 8px (cards), full (chips); sombra ambient `0px 4px 20px rgba(10,37,64,0.08)`.
+
+As 7 telas do inventário abaixo têm mockup de referência no mesmo projeto Stitch (Cadastro e KYC, Imóveis Disponíveis, Detalhes do Imóvel, Sucesso na Compra, Meu Portfólio, Mercado Secundário, Painel do Gestor), implementadas em `frontend/app/(investidor)/` e `frontend/app/(admin)/`.
 
 ## Objetivo do produto em uma frase
 Permitir que um investidor de varejo **sem conhecimento técnico de blockchain** compre cotas digitais de um imóvel, acompanhe rendimentos de aluguel e revenda cotas no mercado secundário — sem nunca precisar entender carteira, gas ou contrato.

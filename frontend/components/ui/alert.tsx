@@ -1,6 +1,7 @@
 import React from "react";
 import { RiErrorWarningLine, RiCheckboxCircleLine, RiInformationLine } from "@remixicon/react";
-import { tv, type VariantProps } from "tailwind-variants";
+import type { VariantProps } from "tailwind-variants";
+import { tv } from "@/lib/tv";
 import { cx } from "@/lib/utils";
 
 const alertVariants = tv({

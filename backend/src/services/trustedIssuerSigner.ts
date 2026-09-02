@@ -1,21 +1,13 @@
-import { createPublicClient, createWalletClient, http, keccak256, stringToHex, toHex } from "viem";
+import { createWalletClient, http, keccak256, stringToHex, toHex } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { v4 as uuidv4 } from "uuid";
 import { config } from "../config.js";
+import { chain, publicClient } from "../chain.js";
 import { identityRegistryAbi } from "../abi/IdentityRegistry.js";
 
 const KYC_APPROVED_TOPIC = keccak256(stringToHex("KYC_APPROVED"));
 
 const account = privateKeyToAccount(config.trustedIssuerPrivateKey);
-
-const chain = {
-  id: config.chainId,
-  name: "backend-configured-chain",
-  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-  rpcUrls: { default: { http: [config.rpcUrl] } },
-} as const;
-
-const publicClient = createPublicClient({ chain, transport: http(config.rpcUrl) });
 const walletClient = createWalletClient({ account, chain, transport: http(config.rpcUrl) });
 
 /**

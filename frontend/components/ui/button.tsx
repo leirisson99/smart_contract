@@ -1,7 +1,8 @@
 import React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { RiLoader2Fill } from "@remixicon/react";
-import { tv, type VariantProps } from "tailwind-variants";
+import type { VariantProps } from "tailwind-variants";
+import { tv } from "@/lib/tv";
 
 import { cx, focusRing } from "@/lib/utils";
 
