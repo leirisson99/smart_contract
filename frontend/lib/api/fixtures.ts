@@ -1,4 +1,4 @@
-import type { Imovel, Investidor, Listagem, Portfolio } from "./types";
+import type { Imovel, Investidor } from "./types";
 
 export const investidorDemo: Investidor = {
   id: "inv-001",
@@ -33,34 +33,6 @@ export const imoveis: Imovel[] = [
     rendimentoEstimadoAnual: 0.084,
     status: "alugado",
     valorMinimoInvestimento: 10_000,
-  },
-];
-
-export const portfolioDemo: Portfolio = {
-  holdings: [{ imovelId: "imv-002", imovelNome: "Residencial Vila Madalena", cotas: 5, valorInvestido: 50_000 }],
-  valorTotalInvestido: 50_000,
-  rendimentosRecebidos: [
-    {
-      id: "rend-001",
-      imovelNome: "Residencial Vila Madalena",
-      cicloReferencia: "Julho/2026",
-      valor: 350.5,
-      dataRecebimento: "2026-08-05",
-    },
-  ],
-  rendimentoPendenteClaim: 175.25,
-};
-
-export const listagens: Listagem[] = [
-  {
-    id: "lst-001",
-    imovelId: "imv-002",
-    imovelNome: "Residencial Vila Madalena",
-    vendedorNome: "Maria S.",
-    cotas: 2,
-    precoPorCota: 10_500,
-    status: "ativa",
-    criadaPeloUsuarioAtual: false,
   },
 ];
 

@@ -14,6 +14,7 @@ export const config = {
   rpcUrl: required("RPC_URL"),
   chainId: Number(process.env.CHAIN_ID ?? 31337),
   identityRegistryAddress: required("IDENTITY_REGISTRY_ADDRESS") as `0x${string}`,
+  marketplaceAddress: required("MARKETPLACE_ADDRESS") as `0x${string}`,
   trustedIssuerPrivateKey: required("TRUSTED_ISSUER_PRIVATE_KEY") as `0x${string}`,
   walletEncKey: required("WALLET_ENC_KEY"),
   gasSponsorPrivateKey: required("GAS_SPONSOR_PRIVATE_KEY") as `0x${string}`,

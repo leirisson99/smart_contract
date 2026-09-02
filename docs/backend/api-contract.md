@@ -56,10 +56,12 @@ O `claim` automático (RF-24) é um job periódico, não um endpoint chamado pel
 ### 004 — Mercado Secundário ([spec](features/004-mercado-secundario/spec.md))
 | Endpoint | Payload de entrada | Retorno (sucesso) | Erros possíveis |
 |---|---|---|---|
-| `GET /listagens` | — | `Listagem[]` (só `status: "ativa"`) | — |
-| `POST /listagens` | `{ imovelId, cotas, precoPorCota }` | `Listagem` criada | `SALDO_INSUFICIENTE` |
-| `POST /listagens/:id/comprar` | — | `200 OK` | `SEM_KYC`, `LISTAGEM_JA_VENDIDA`, `LISTAGEM_NAO_ENCONTRADA` |
-| `POST /listagens/:id/cancelar` | — | `200 OK` | `LISTAGEM_NAO_ENCONTRADA` |
+| `GET /listagens?investorId=` | — (`investorId` opcional, só para computar `criadaPeloUsuarioAtual`) | `Listagem[]` (só `status: "ativa"`) | — |
+| `POST /listagens` | `{ investorId, imovelId, cotas, precoPorCota }` (`precoPorCota` em wei, 18 casas — mesma unidade de `Imovel.precoPorCota`) | `Listagem` criada | `SALDO_INSUFICIENTE` |
+| `POST /listagens/:id/comprar` | `{ investorId }` | `200 OK` | `SEM_KYC`, `LISTAGEM_JA_VENDIDA`, `LISTAGEM_NAO_ENCONTRADA` |
+| `POST /listagens/:id/cancelar` | `{ investorId }` | `200 OK` | `LISTAGEM_NAO_ENCONTRADA` |
+
+`comprar` sempre adquire a quantidade total disponível da listagem (sem compra parcial — mesmo comportamento do mock que o frontend tinha antes desta feature). `investorId` é necessário nesses três endpoints porque não existe autenticação/sessão no backend (mesmo gap de 001) — diverge do payload originalmente desenhado nesta tabela antes da implementação (Sprint 7), que não previa `investorId` explícito.
 
 ### 005 — Painel Administrativo ([spec](features/005-painel-administrativo/spec.md))
 | Endpoint | Payload de entrada | Retorno (sucesso) | Erros possíveis |
@@ -70,4 +72,4 @@ O `claim` automático (RF-24) é um job periódico, não um endpoint chamado pel
 
 ## Gap conhecido (2026-09-02)
 
-O código real de 001 (`backend/src/routes/{investors,kyc,webhooks}.ts`) hoje retorna erros como strings livres (`{ error: "fullName e cpf sao obrigatorios" }`), não neste formato — permanece como dívida técnica (não alinhado nesta sprint). Os endpoints de 002/003 (Sprint 6) já foram implementados seguindo o vocabulário `codigo` para os cenários RNF-16 (`SEM_KYC`, `COTAS_INSUFICIENTES`, `VALOR_MINIMO_NAO_ATINGIDO`); erros de "recurso não encontrado" (imóvel/investidor inexistente) usam mensagens livres, por não terem código próprio nesta lista. 004/005 (Sprints 7/8) devem seguir o mesmo padrão.
+O código real de 001 (`backend/src/routes/{investors,kyc,webhooks}.ts`) hoje retorna erros como strings livres (`{ error: "fullName e cpf sao obrigatorios" }`), não neste formato — permanece como dívida técnica (não alinhado nesta sprint). Os endpoints de 002/003 (Sprint 6) e 004 (Sprint 7) já foram implementados seguindo o vocabulário `codigo` para os cenários RNF-16/de negócio (`SEM_KYC`, `COTAS_INSUFICIENTES`, `VALOR_MINIMO_NAO_ATINGIDO`, `SALDO_INSUFICIENTE`, `LISTAGEM_JA_VENDIDA`, `LISTAGEM_NAO_ENCONTRADA`); erros de "recurso não encontrado" (imóvel/investidor/listagem inexistente, ou listagem que não pertence ao investidor) usam mensagens livres, por não terem código próprio nesta lista. 005 (Sprint 8) deve seguir o mesmo padrão.

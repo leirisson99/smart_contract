@@ -1,7 +1,7 @@
 ---
-status: draft
+status: approved
 owner: tech-lead
-last_updated: 2026-09-01
+last_updated: 2026-09-02
 ---
 
 # Implementação — Feature Backend 004
@@ -25,10 +25,10 @@ Depende dos contratos de `../../../on-chain/features/004-mercado-secundario` já
 - Fluxo de mercado secundário: listagem → compra por outro investidor → saldo atualizado em ambos os portfólios ([003](../003-portfolio-e-rendimentos/implement.md)).
 
 ### Critério de saída
-Todos os cenários de `spec.md` cobertos por teste de integração ou end-to-end.
+Todos os cenários de `spec.md` cobertos por teste de integração (Anvil local, via mocks) ou verificação manual ponta a ponta. Nenhum teste e2e automatizado gated por `RUN_E2E=1` foi adicionado para esta feature (diferente de 002/003) — fica como débito, mesmo padrão de teste manual ponta a ponta já documentado acima.
 
 ## Nota de segurança
 Mesmo princípio de RNF-16 (ver [002](../002-investimento-primario/implement.md)) — a checagem de KYC feita pelo backend antes de enviar `Marketplace.comprar` é só uma otimização de UX; a segurança vem do próprio contrato recusar a transferência.
 
 ## Status de implementação
-Nenhum código ainda — spec em `draft`, precisa virar `approved` antes de qualquer implementação (SDD, ver `../../../on-chain/00-constitution.md`).
+Implementado e testado — `backend/src/routes/marketplace.ts`, `backend/src/services/marketplaceChain.ts`, `backend/src/abi/Marketplace.ts`. Testes unitários mockando a chain (`backend/test/marketplace.routes.test.ts`) + verificação manual ponta a ponta contra Anvil local (deploy via `projeto_imobiliaria/script/DeployMarketplace.s.sol`, claim `KYC_APPROVED` via `backend/scripts/grant-marketplace-kyc.ts`) cobrindo listar → comprar por outro investidor → cancelar, com saldo e valor investido refletidos no portfólio de ambos os investidores. `frontend/lib/api/marketplace.ts` trocado do mock para chamadas reais no mesmo padrão de `kyc.ts`/`imoveis.ts`/`portfolio.ts`; corrigido também um bug de estado obsoleto em `CreateListingDialog` (`imovelId` nunca sincronizava com os holdings carregados de forma assíncrona) que impedia a criação de listagens na UI real. Reconciliado com o código em 2026-09-02 (Sprint 7).

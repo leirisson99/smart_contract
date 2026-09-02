@@ -50,9 +50,12 @@ model Property {
   yieldClaims                YieldClaim[]
 }
 
-/// Ledger de compras primarias (RF-22). cotas/valorPago sao o registro do
-/// que foi de fato executado on-chain (comprarCotas) - usado para calcular
-/// "valor investido" no portfolio (003), que o contrato nao rastreia.
+/// Ledger de aquisicoes de cotas, tanto primarias (RF-22, `PropertyToken.comprarCotas`)
+/// quanto secundarias (RF-35, `Marketplace.comprar`). cotas/valorPago sao o
+/// registro do que foi de fato executado on-chain - usado para saber quais
+/// imoveis consultar e para calcular "valor investido" no portfolio (003) e
+/// para identificar investidores elegiveis no job de claim (003), nenhum dos
+/// dois rastreados pelo contrato.
 model Investment {
   id         String   @id @default(uuid())
   investorId String

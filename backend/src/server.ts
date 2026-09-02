@@ -7,6 +7,7 @@ import { kycRoutes } from "./routes/kyc.js";
 import { webhookRoutes } from "./routes/webhooks.js";
 import { imoveisRoutes } from "./routes/imoveis.js";
 import { portfolioRoutes } from "./routes/portfolio.js";
+import { marketplaceRoutes } from "./routes/marketplace.js";
 
 export function buildServer() {
   const app = Fastify({ logger: true });
@@ -16,6 +17,7 @@ export function buildServer() {
   app.register(webhookRoutes);
   app.register(imoveisRoutes);
   app.register(portfolioRoutes);
+  app.register(marketplaceRoutes);
   return app;
 }
 

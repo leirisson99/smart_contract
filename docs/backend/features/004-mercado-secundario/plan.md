@@ -1,7 +1,7 @@
 ---
-status: draft
+status: approved
 owner: tech-lead
-last_updated: 2026-09-01
+last_updated: 2026-09-02
 ---
 
 # Plano Técnico — Feature Backend 004

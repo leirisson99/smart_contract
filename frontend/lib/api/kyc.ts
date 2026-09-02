@@ -1,4 +1,3 @@
-import { ApiError } from "@/lib/errors";
 import { apiGet, apiPost } from "./http";
 import { atualizarStatusKycSalvo, obterInvestidorSalvo, salvarInvestidor } from "./session";
 import type { Investidor, StatusKyc } from "./types";
@@ -46,10 +45,4 @@ export async function obterInvestidorAtual(): Promise<Investidor> {
   if (!investidor) throw new Error("nenhum investidor cadastrado nesta sessão");
   const status = await obterStatusKyc();
   return { ...investidor, statusKyc: status };
-}
-
-/** Usado hoje só por `marketplace.ts` (mock, feature 004 ainda não existe no backend real). */
-export function garantirKycAprovado(status: StatusKyc) {
-  if (status === "reprovado") throw new ApiError("KYC_REPROVADO");
-  if (status !== "aprovado") throw new ApiError("SEM_KYC");
 }

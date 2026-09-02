@@ -25,7 +25,15 @@ function CreateListingDialog({ holdings, onCriada }: CreateListingDialogProps) {
   const [state, setState] = useState<TransactionState>("idle");
   const [erro, setErro] = useState<string | null>(null);
 
-  const imovelSelecionado = holdings.find((item) => item.imovelId === imovelId);
+  // `holdings` chega assíncrono (obterPortfolio); o valor inicial de
+  // `imovelId` captura o array vazio do primeiro render e nunca mais
+  // atualiza sozinho, deixando `imovelSelecionado` indefinido mesmo depois
+  // que os holdings chegam - por isso cai para o primeiro holding aqui, em
+  // vez de confiar cegamente no `imovelId` armazenado.
+  const imovelIdEfetivo = holdings.some((holding) => holding.imovelId === imovelId)
+    ? imovelId
+    : (holdings[0]?.imovelId ?? "");
+  const imovelSelecionado = holdings.find((item) => item.imovelId === imovelIdEfetivo);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -33,7 +41,7 @@ function CreateListingDialog({ holdings, onCriada }: CreateListingDialogProps) {
     setState("processando");
     setErro(null);
     try {
-      await criarListagem(imovelSelecionado.imovelId, imovelSelecionado.imovelNome, cotas, preco);
+      await criarListagem(imovelSelecionado.imovelId, cotas, preco);
       setState("sucesso");
       onCriada();
       setOpen(false);
@@ -69,7 +77,7 @@ function CreateListingDialog({ holdings, onCriada }: CreateListingDialogProps) {
               <select
                 id="imovel"
                 className="block w-full min-h-12 rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-md"
-                value={imovelId}
+                value={imovelIdEfetivo}
                 onChange={(event) => setImovelId(event.target.value)}
               >
                 {holdings.map((holding) => (
