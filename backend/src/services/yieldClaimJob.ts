@@ -37,7 +37,7 @@ export async function pendingCyclesFor(
  * `claimTodos` (uma unica transacao); se falhar, cai para `claim` individual
  * por ciclo, isolando a falha de um ciclo especifico dos demais.
  */
-async function claimForInvestorProperty(
+export async function claimForInvestorProperty(
   investor: { id: string; walletAddress: string; walletKeyEnc: string },
   property: { id: string; dividendDistributorAddress: string },
 ): Promise<{ claimed: number }> {
@@ -85,6 +85,35 @@ async function claimForInvestorProperty(
     }
     return { claimed };
   }
+}
+
+/**
+ * Reivindica sob demanda os rendimentos pendentes de um investidor em todos
+ * os imoveis onde ele tem cotas (RF-24, caminho acionado pelo botao "Resgatar
+ * rendimento" do portfolio, em vez de esperar o job periodico). Reaproveita
+ * `claimForInvestorProperty`, so que escopado as propriedades desse
+ * investidor (via o ledger `Investment`) em vez de rodar para todo mundo.
+ */
+export async function claimPendingForInvestor(
+  investorId: string,
+): Promise<{ claimsExecutados: number }> {
+  const investor = await prisma.investor.findUniqueOrThrow({ where: { id: investorId } });
+
+  const propertyIds = await prisma.investment.findMany({
+    where: { investorId },
+    select: { propertyId: true },
+    distinct: ["propertyId"],
+  });
+  const properties = await prisma.property.findMany({
+    where: { id: { in: propertyIds.map((p) => p.propertyId) } },
+  });
+
+  let claimsExecutados = 0;
+  for (const property of properties) {
+    const { claimed } = await claimForInvestorProperty(investor, property);
+    claimsExecutados += claimed;
+  }
+  return { claimsExecutados };
 }
 
 /**

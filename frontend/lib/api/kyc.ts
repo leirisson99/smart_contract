@@ -1,6 +1,6 @@
 import { ApiError } from "@/lib/errors";
-import { delay } from "./delay";
-import { investidorDemo } from "./fixtures";
+import { apiGet, apiPost } from "./http";
+import { atualizarStatusKycSalvo, obterInvestidorSalvo, salvarInvestidor } from "./session";
 import type { Investidor, StatusKyc } from "./types";
 
 export interface DadosCadastro {
@@ -9,31 +9,46 @@ export interface DadosCadastro {
   cpf: string;
 }
 
-/** RF-27: cadastro + upload de KYC. Espelha `backend/src/routes/investors.ts` + `kyc.ts`. */
+const STATUS_BACKEND_PARA_FRONTEND: Record<string, StatusKyc> = {
+  PENDING: "pendente",
+  PROCESSING: "pendente",
+  APPROVED: "aprovado",
+  REJECTED: "reprovado",
+};
+
+/** RF-27: cadastro + submissão de KYC. Espelha `backend/src/routes/investors.ts` + `kyc.ts`. */
 export async function cadastrar(dados: DadosCadastro): Promise<Investidor> {
-  await delay(1200);
-  investidorDemo.nome = dados.nome;
-  investidorDemo.email = dados.email;
-  investidorDemo.statusKyc = "pendente";
+  const { investorId } = await apiPost<{ investorId: string; walletAddress: string }>("/investors", {
+    fullName: dados.nome,
+    cpf: dados.cpf,
+  });
 
-  // Simula o webhook assíncrono do provedor de KYC aprovando o investidor.
-  setTimeout(() => {
-    investidorDemo.statusKyc = "aprovado";
-  }, 6000);
+  const investidor: Investidor = { id: investorId, nome: dados.nome, email: dados.email, statusKyc: "pendente" };
+  salvarInvestidor(investidor);
 
-  return { ...investidorDemo };
+  await apiPost(`/investors/${investorId}/kyc`, {});
+
+  return investidor;
 }
 
 export async function obterStatusKyc(): Promise<StatusKyc> {
-  await delay(300);
-  return investidorDemo.statusKyc;
+  const investidor = obterInvestidorSalvo();
+  if (!investidor) return "pendente";
+
+  const kyc = await apiGet<{ status: string }>(`/investors/${investidor.id}/kyc`);
+  const status = STATUS_BACKEND_PARA_FRONTEND[kyc.status] ?? "pendente";
+  atualizarStatusKycSalvo(status);
+  return status;
 }
 
 export async function obterInvestidorAtual(): Promise<Investidor> {
-  await delay(300);
-  return { ...investidorDemo };
+  const investidor = obterInvestidorSalvo();
+  if (!investidor) throw new Error("nenhum investidor cadastrado nesta sessão");
+  const status = await obterStatusKyc();
+  return { ...investidor, statusKyc: status };
 }
 
+/** Usado hoje só por `marketplace.ts` (mock, feature 004 ainda não existe no backend real). */
 export function garantirKycAprovado(status: StatusKyc) {
   if (status === "reprovado") throw new ApiError("KYC_REPROVADO");
   if (status !== "aprovado") throw new ApiError("SEM_KYC");

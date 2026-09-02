@@ -2,6 +2,8 @@ import { createWalletClient, http, parseEther } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { config } from "../config.js";
 import { chain, publicClient } from "../chain.js";
+import { erc20Abi } from "../abi/ERC20.js";
+import { mockErc20Abi } from "../abi/MockERC20.js";
 
 /**
  * Carteiras custodiais sao geradas do zero (`walletCustody.createCustodialWallet`)
@@ -23,5 +25,37 @@ export async function garantirGasParaCarteira(wallet: `0x${string}`): Promise<vo
   if (saldo >= GAS_TOPUP_THRESHOLD) return;
 
   const hash = await sponsorWallet.sendTransaction({ to: wallet, value: GAS_TOPUP_AMOUNT });
+  await publicClient.waitForTransactionReceipt({ hash });
+}
+
+/**
+ * Mesmo problema do gas de ETH acima, mas para a moeda de pagamento: a
+ * carteira custodial nasce sem nenhum saldo de `moedaPagamento`, e ainda nao
+ * existe nenhum gateway real para o investidor adquiri-la (RISK-08 segue em
+ * aberto). Isso so funciona porque `moedaPagamento` hoje e sempre o
+ * `MockERC20` de teste, cujo `mint` e publico (sem controle de acesso) - o
+ * dia que a moeda real for definida, esta funcao deixa de fazer sentido e
+ * deve ser substituida pelo fluxo real de aquisicao.
+ */
+export async function garantirSaldoMoedaTeste(
+  moedaPagamento: `0x${string}`,
+  wallet: `0x${string}`,
+  valorNecessario: bigint,
+): Promise<void> {
+  const saldo = (await publicClient.readContract({
+    address: moedaPagamento,
+    abi: erc20Abi,
+    functionName: "balanceOf",
+    args: [wallet],
+  })) as bigint;
+  if (saldo >= valorNecessario) return;
+
+  const faltante = valorNecessario - saldo;
+  const hash = await sponsorWallet.writeContract({
+    address: moedaPagamento,
+    abi: mockErc20Abi,
+    functionName: "mint",
+    args: [wallet, faltante],
+  });
   await publicClient.waitForTransactionReceipt({ hash });
 }

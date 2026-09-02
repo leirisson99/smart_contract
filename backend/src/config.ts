@@ -10,6 +10,7 @@ function required(name: string): string {
 
 export const config = {
   port: Number(process.env.PORT ?? 3000),
+  corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:3000",
   rpcUrl: required("RPC_URL"),
   chainId: Number(process.env.CHAIN_ID ?? 31337),
   identityRegistryAddress: required("IDENTITY_REGISTRY_ADDRESS") as `0x${string}`,

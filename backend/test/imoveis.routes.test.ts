@@ -7,6 +7,11 @@ vi.mock("../src/services/trustedIssuerSigner.js", () => ({
   emitirClaimOnChain: vi.fn(async () => "0xunused"),
 }));
 
+vi.mock("../src/services/gasSponsor.js", () => ({
+  garantirGasParaCarteira: vi.fn(async () => undefined),
+  garantirSaldoMoedaTeste: vi.fn(async () => undefined),
+}));
+
 vi.mock("../src/services/propertyChain.js", () => ({
   lerImovelOnChain: vi.fn(async () => ({
     nome: "Edificio Aurora",

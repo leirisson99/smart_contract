@@ -1,7 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../db/client.js";
 import { balanceOfOnChain, lerImovelOnChain } from "../services/propertyChain.js";
-import { pendingCyclesFor } from "../services/yieldClaimJob.js";
+import { claimPendingForInvestor, pendingCyclesFor } from "../services/yieldClaimJob.js";
 
 export async function portfolioRoutes(app: FastifyInstance) {
   app.get("/investors/:id/portfolio", async (request, reply) => {
@@ -67,5 +67,21 @@ export async function portfolioRoutes(app: FastifyInstance) {
       rendimentosRecebidos,
       rendimentoPendenteClaim: rendimentoPendenteClaim.toString(),
     });
+  });
+
+  app.post("/investors/:id/portfolio/claim", async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const investor = await prisma.investor.findUnique({ where: { id } });
+    if (!investor) {
+      return reply.code(404).send({ error: "investidor nao encontrado" });
+    }
+
+    try {
+      const { claimsExecutados } = await claimPendingForInvestor(id);
+      return reply.send({ claimsExecutados });
+    } catch (err) {
+      request.log.error({ err }, "falha ao reivindicar rendimentos on-chain");
+      return reply.code(502).send({ codigo: "ERRO_DESCONHECIDO" });
+    }
   });
 }

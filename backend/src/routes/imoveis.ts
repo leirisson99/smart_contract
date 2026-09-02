@@ -3,7 +3,7 @@ import { prisma } from "../db/client.js";
 import { decryptSecret } from "../services/walletCustody.js";
 import { isVerifiedOnChain } from "../services/trustedIssuerSigner.js";
 import { balanceOfOnChain, comprarCotasOnChain, lerImovelOnChain } from "../services/propertyChain.js";
-import { garantirGasParaCarteira } from "../services/gasSponsor.js";
+import { garantirGasParaCarteira, garantirSaldoMoedaTeste } from "../services/gasSponsor.js";
 
 async function serializeImovel(property: { id: string; imagemUrl: string | null; rendimentoEstimadoAnual: number; status: string; valorMinimoInvestimento: string; propertyTokenAddress: string }) {
   const onChain = await lerImovelOnChain(property.propertyTokenAddress as `0x${string}`);
@@ -79,6 +79,7 @@ export async function imoveisRoutes(app: FastifyInstance) {
     let txHash: `0x${string}`;
     try {
       await garantirGasParaCarteira(investor.walletAddress as `0x${string}`);
+      await garantirSaldoMoedaTeste(onChain.moedaPagamento, investor.walletAddress as `0x${string}`, valorPago);
       txHash = await comprarCotasOnChain({
         investorPrivateKey,
         propertyTokenAddress: property.propertyTokenAddress as `0x${string}`,

@@ -1,27 +1,54 @@
-import { delay } from "./delay";
-import { portfolioDemo } from "./fixtures";
+import { apiGet, apiPost } from "./http";
+import { weiParaReais } from "./money";
+import { obterInvestidorSalvo } from "./session";
 import type { Portfolio } from "./types";
 
-/** RF-29: leitura de portfólio + claim de rendimentos. Espelha `003-portfolio-e-rendimentos`. */
-export async function obterPortfolio(): Promise<Portfolio> {
-  await delay(500);
+type PortfolioBackend = {
+  holdings: { imovelId: string; imovelNome: string; cotas: number; valorInvestido: string }[];
+  valorTotalInvestido: string;
+  rendimentosRecebidos: {
+    id: string;
+    imovelNome: string;
+    cicloReferencia: number;
+    valor: string;
+    dataRecebimento: string;
+  }[];
+  rendimentoPendenteClaim: string;
+};
+
+function converterPortfolio(portfolio: PortfolioBackend): Portfolio {
   return {
-    ...portfolioDemo,
-    holdings: [...portfolioDemo.holdings],
-    rendimentosRecebidos: [...portfolioDemo.rendimentosRecebidos],
+    holdings: portfolio.holdings.map((h) => ({
+      imovelId: h.imovelId,
+      imovelNome: h.imovelNome,
+      cotas: h.cotas,
+      valorInvestido: weiParaReais(h.valorInvestido),
+    })),
+    valorTotalInvestido: weiParaReais(portfolio.valorTotalInvestido),
+    rendimentosRecebidos: portfolio.rendimentosRecebidos.map((r) => ({
+      id: r.id,
+      imovelNome: r.imovelNome,
+      cicloReferencia: `Ciclo ${r.cicloReferencia}`,
+      valor: weiParaReais(r.valor),
+      dataRecebimento: r.dataRecebimento,
+    })),
+    rendimentoPendenteClaim: weiParaReais(portfolio.rendimentoPendenteClaim),
   };
 }
 
-export async function claimRendimentos(): Promise<void> {
-  await delay(1500);
-  if (portfolioDemo.rendimentoPendenteClaim <= 0) return;
+/** RF-29: leitura de portfólio + claim de rendimentos. Espelha `backend/src/routes/portfolio.ts`. */
+export async function obterPortfolio(): Promise<Portfolio> {
+  const investidor = obterInvestidorSalvo();
+  if (!investidor) {
+    return { holdings: [], valorTotalInvestido: 0, rendimentosRecebidos: [], rendimentoPendenteClaim: 0 };
+  }
+  const portfolio = await apiGet<PortfolioBackend>(`/investors/${investidor.id}/portfolio`);
+  return converterPortfolio(portfolio);
+}
 
-  portfolioDemo.rendimentosRecebidos.unshift({
-    id: `rend-${Date.now()}`,
-    imovelNome: portfolioDemo.holdings[0]?.imovelNome ?? "Portfólio",
-    cicloReferencia: new Date().toLocaleDateString("pt-BR", { month: "long", year: "numeric" }),
-    valor: portfolioDemo.rendimentoPendenteClaim,
-    dataRecebimento: new Date().toISOString(),
-  });
-  portfolioDemo.rendimentoPendenteClaim = 0;
+export async function claimRendimentos(): Promise<void> {
+  const investidor = obterInvestidorSalvo();
+  if (!investidor) throw new Error("nenhum investidor cadastrado nesta sessão");
+
+  await apiPost(`/investors/${investidor.id}/portfolio/claim`);
 }
