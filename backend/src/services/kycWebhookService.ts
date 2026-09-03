@@ -35,9 +35,21 @@ export async function processKycWebhookResult(input: KycWebhookInput): Promise<v
   if (input.result === "REJECTED") return;
 
   const investor = await prisma.investor.findUniqueOrThrow({ where: { id: submission.investorId } });
-  const claimTxHash = await emitirClaimOnChain(investor.walletAddress as `0x${string}`);
-  await prisma.kycSubmission.update({
-    where: { id: submission.id },
-    data: { status: "APPROVED", claimTxHash },
-  });
+  try {
+    const claimTxHash = await emitirClaimOnChain(investor.walletAddress as `0x${string}`);
+    await prisma.kycSubmission.update({
+      where: { id: submission.id },
+      data: { status: "APPROVED", claimTxHash },
+    });
+  } catch (err) {
+    // Sem isso, uma falha aqui (RPC fora do ar, tx revertida) deixava a
+    // submissao presa em PROCESSING para sempre - kyc.ts:20 so permite
+    // reenvio quando o status e REJECTED, entao o investidor ficava
+    // travado sem nenhum caminho de autoatendimento para se recuperar.
+    await prisma.kycSubmission.update({
+      where: { id: submission.id },
+      data: { status: "REJECTED", rejectionReason: "falha ao emitir claim on-chain, tente reenviar o KYC" },
+    });
+    throw err;
+  }
 }

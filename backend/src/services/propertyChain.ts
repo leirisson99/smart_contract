@@ -15,8 +15,21 @@ export type ImovelOnChain = {
   moedaPagamento: `0x${string}`;
 };
 
+/** Mesmo problema de `marketplaceChain.TransacaoRevertidaError`: `writeContract` nao simula antes de enviar. */
+export class TransacaoRevertidaError extends Error {
+  constructor(hash: `0x${string}`) {
+    super(`transacao ${hash} revertida on-chain`);
+  }
+}
+
 function walletClientFor(privateKey: `0x${string}`) {
   return createWalletClient({ account: privateKeyToAccount(privateKey), chain, transport: http(config.rpcUrl) });
+}
+
+async function aguardarSucesso(hash: `0x${string}`) {
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status === "reverted") throw new TransacaoRevertidaError(hash);
+  return receipt;
 }
 
 /**
@@ -81,7 +94,7 @@ export async function comprarCotasOnChain(params: {
     functionName: "approve",
     args: [params.propertyTokenAddress, params.valorPago],
   });
-  await publicClient.waitForTransactionReceipt({ hash: approveHash });
+  await aguardarSucesso(approveHash);
 
   const hash = await wallet.writeContract({
     address: params.propertyTokenAddress,
@@ -89,7 +102,7 @@ export async function comprarCotasOnChain(params: {
     functionName: "comprarCotas",
     args: [params.quantidade],
   });
-  await publicClient.waitForTransactionReceipt({ hash });
+  await aguardarSucesso(hash);
   return hash;
 }
 
@@ -127,7 +140,7 @@ export async function claimTodosOnChain(
     abi: dividendDistributorAbi,
     functionName: "claimTodos",
   });
-  await publicClient.waitForTransactionReceipt({ hash });
+  await aguardarSucesso(hash);
   return hash;
 }
 
@@ -144,6 +157,6 @@ export async function claimCicloOnChain(
     functionName: "claim",
     args: [idCiclo],
   });
-  await publicClient.waitForTransactionReceipt({ hash });
+  await aguardarSucesso(hash);
   return hash;
 }

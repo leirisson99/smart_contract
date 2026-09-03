@@ -23,13 +23,21 @@ export async function pendingCyclesFor(
   });
   const registrados = new Set(jaRegistrados.map((r) => r.cicloId));
 
-  const pendentes: PendingCycle[] = [];
+  const ciclosAConsultar: bigint[] = [];
   for (let ciclo = 1n; ciclo <= cicloAtual; ciclo++) {
-    if (registrados.has(Number(ciclo))) continue;
-    const valor = await valorReivindicavelOnChain(distributorAddress, wallet, ciclo);
-    if (valor > 0n) pendentes.push({ idCiclo: ciclo, valor });
+    if (!registrados.has(Number(ciclo))) ciclosAConsultar.push(ciclo);
   }
-  return pendentes;
+
+  // Le todos os ciclos ainda nao registrados em paralelo - com o loop
+  // sequencial anterior, um investidor com muitos ciclos acumulados fazia um
+  // round-trip de RPC por ciclo, um atras do outro.
+  const valores = await Promise.all(
+    ciclosAConsultar.map((ciclo) => valorReivindicavelOnChain(distributorAddress, wallet, ciclo)),
+  );
+
+  return ciclosAConsultar
+    .map((idCiclo, i) => ({ idCiclo, valor: valores[i] }))
+    .filter((p) => p.valor > 0n);
 }
 
 /**

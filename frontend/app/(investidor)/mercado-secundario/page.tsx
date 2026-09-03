@@ -3,18 +3,25 @@
 import { useCallback, useEffect, useState } from "react";
 import { ListingCard } from "@/components/marketplace/listing-card";
 import { CreateListingDialog } from "@/components/marketplace/create-listing-dialog";
+import { Alert } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import { listarListagens } from "@/lib/api/marketplace";
 import { obterPortfolio } from "@/lib/api/portfolio";
 import type { Listagem, Holding } from "@/lib/api/types";
+import { traduzirErro } from "@/lib/errors";
 
 export default function MercadoSecundarioPage() {
   const [listagens, setListagens] = useState<Listagem[] | null>(null);
   const [holdings, setHoldings] = useState<Holding[]>([]);
+  const [erro, setErro] = useState<string | null>(null);
 
   const carregar = useCallback(() => {
-    listarListagens().then(setListagens);
-    obterPortfolio().then((portfolio) => setHoldings(portfolio.holdings.filter((holding) => holding.cotas > 0)));
+    listarListagens()
+      .then(setListagens)
+      .catch((error) => setErro(traduzirErro(error)));
+    obterPortfolio()
+      .then((portfolio) => setHoldings(portfolio.holdings.filter((holding) => holding.cotas > 0)))
+      .catch((error) => setErro(traduzirErro(error)));
   }, []);
 
   useEffect(() => {
@@ -27,7 +34,9 @@ export default function MercadoSecundarioPage() {
         <h1 className="text-headline-lg-mobile font-bold tracking-tight sm:text-headline-lg">Mercado Secundário</h1>
         <CreateListingDialog holdings={holdings} onCriada={carregar} />
       </div>
-      {!listagens ? (
+      {erro ? (
+        <Alert tone="error">{erro}</Alert>
+      ) : !listagens ? (
         <Spinner className="size-6" />
       ) : listagens.length === 0 ? (
         <p className="text-body-md text-on-surface-variant">Nenhuma listagem ativa no momento.</p>

@@ -4,24 +4,32 @@ import { useCallback, useEffect, useState } from "react";
 import { CreatePropertyForm } from "@/components/admin/create-property-form";
 import { DepositYieldForm } from "@/components/admin/deposit-yield-form";
 import { InvestorsTable } from "@/components/admin/investors-table";
+import { Alert } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import { listarInvestidoresAdmin } from "@/lib/api/admin";
 import { listarImoveis } from "@/lib/api/imoveis";
 import type { Imovel, Investidor } from "@/lib/api/types";
+import { traduzirErro } from "@/lib/errors";
 
 export default function AdminPage() {
   const [imoveis, setImoveis] = useState<Imovel[] | null>(null);
   const [investidores, setInvestidores] = useState<Investidor[] | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
 
   const carregarImoveis = useCallback(() => {
-    listarImoveis().then(setImoveis);
+    listarImoveis()
+      .then(setImoveis)
+      .catch((error) => setErro(traduzirErro(error)));
   }, []);
 
   useEffect(() => {
     carregarImoveis();
-    listarInvestidoresAdmin().then(setInvestidores);
+    listarInvestidoresAdmin()
+      .then(setInvestidores)
+      .catch((error) => setErro(traduzirErro(error)));
   }, [carregarImoveis]);
 
+  if (erro) return <Alert tone="error">{erro}</Alert>;
   if (!imoveis || !investidores) return <Spinner className="size-6" />;
 
   return (

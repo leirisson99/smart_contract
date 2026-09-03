@@ -10,6 +10,19 @@ const KYC_APPROVED_TOPIC = keccak256(stringToHex("KYC_APPROVED"));
 const account = privateKeyToAccount(config.trustedIssuerPrivateKey);
 const walletClient = createWalletClient({ account, chain, transport: http(config.rpcUrl) });
 
+/** Mesmo problema de `marketplaceChain.TransacaoRevertidaError`: `writeContract` nao simula antes de enviar. */
+export class TransacaoRevertidaError extends Error {
+  constructor(hash: `0x${string}`) {
+    super(`transacao ${hash} revertida on-chain`);
+  }
+}
+
+async function aguardarSucesso(hash: `0x${string}`) {
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status === "reverted") throw new TransacaoRevertidaError(hash);
+  return receipt;
+}
+
 /**
  * Emite a claim KYC_APPROVED on-chain para a carteira do investidor.
  * `emitirClaim` no contrato nao faz verificacao criptografica real sobre o
@@ -25,7 +38,7 @@ export async function emitirClaimOnChain(walletAddress: `0x${string}`): Promise<
     functionName: "emitirClaim",
     args: [walletAddress, KYC_APPROVED_TOPIC, assinatura],
   });
-  await publicClient.waitForTransactionReceipt({ hash });
+  await aguardarSucesso(hash);
   return hash;
 }
 

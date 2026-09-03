@@ -21,4 +21,5 @@ export const config = {
   gasSponsorPrivateKey: required("GAS_SPONSOR_PRIVATE_KEY") as `0x${string}`,
   gestorPrivateKey: required("GESTOR_PRIVATE_KEY") as `0x${string}`,
   adminApiKey: required("ADMIN_API_KEY"),
+  kycWebhookSecret: required("KYC_WEBHOOK_SECRET"),
 };

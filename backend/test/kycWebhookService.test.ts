@@ -75,4 +75,17 @@ describe("processKycWebhookResult", () => {
     ).resolves.toBeUndefined();
     expect(emitirClaimOnChain).not.toHaveBeenCalled();
   });
+
+  it("volta para REJECTED (nao fica travado em PROCESSING) quando a claim on-chain falha", async () => {
+    vi.mocked(emitirClaimOnChain).mockRejectedValueOnce(new Error("rpc indisponivel"));
+    const { submission } = await createInvestorWithSubmission("ref-falha-chain");
+
+    await expect(
+      processKycWebhookResult({ providerReference: "ref-falha-chain", result: "APPROVED" }),
+    ).rejects.toThrow("rpc indisponivel");
+
+    const updated = await prisma.kycSubmission.findUniqueOrThrow({ where: { id: submission.id } });
+    expect(updated.status).toBe("REJECTED");
+    expect(updated.claimTxHash).toBeNull();
+  });
 });

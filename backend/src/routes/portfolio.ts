@@ -50,14 +50,18 @@ export async function portfolioRoutes(app: FastifyInstance) {
 
     const valorTotalInvestido = holdings.reduce((acc, h) => acc + BigInt(h.valorInvestido), 0n);
 
+    const pendentesPorImovel = await Promise.all(
+      properties.map((property) =>
+        pendingCyclesFor(
+          property.dividendDistributorAddress as `0x${string}`,
+          wallet,
+          property.id,
+          investor.id,
+        ),
+      ),
+    );
     let rendimentoPendenteClaim = 0n;
-    for (const property of properties) {
-      const pendentes = await pendingCyclesFor(
-        property.dividendDistributorAddress as `0x${string}`,
-        wallet,
-        property.id,
-        investor.id,
-      );
+    for (const pendentes of pendentesPorImovel) {
       rendimentoPendenteClaim = pendentes.reduce((acc, p) => acc + p.valor, rendimentoPendenteClaim);
     }
 
