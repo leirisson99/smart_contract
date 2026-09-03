@@ -20,7 +20,8 @@ last_updated: 2026-08-22
 - [ ] `SEC-11` ([security-checklist.md](on-chain/security-checklist.md)) — chave do Trusted Issuer comprometida: contenção on-chain pronta e testada (`removerTrustedIssuer`), processo de rotação documentado ([runbook](on-chain/runbooks/rotacao-trusted-issuer.md)); falta só a custódia real (hardware wallet/multisig do provedor), que depende da contratação acima. **Único item do checklist ainda não `mitigado` (11/12 mitigados, `SEC-11` `parcialmente mitigado`).**
 - [ ] Decisão de negócio sobre a moeda de liquidação real (`RISK-08`, stablecoin vs. BRL) — `PropertyToken`/`PropertyFactory`/`DividendDistributor`/`Marketplace` já são desacoplados da moeda (endereço ERC-20 configurável), então isso não bloqueia mais o código, só a integração final com a moeda escolhida.
 - [ ] Auditoria externa — pré-requisito da Fase 4 do roadmap; ainda não contratada.
-- [ ] Processo operacional de depósito mensal pelo gestor da SPE (feature 003, fora do contrato) — necessário para a Fase 4 do roadmap, não documentado ainda.
+- [ ] Processo operacional de decisão do valor do rendimento mensal pelo gestor da SPE (de onde vem o número, quem aprova) — o acionamento em si deixou de ser manual (Sprint 8: `POST /admin/imoveis/:id/depositar-rendimento`, ver `docs/backend/features/005-painel-administrativo/`), mas a decisão de negócio de quanto depositar continua fora do sistema. Necessário para a Fase 4 do roadmap, não documentado ainda.
+- [ ] Ausência de autenticação/sessão nas rotas do investidor (`001`-`004`) — aceita como dívida da POC na Sprint 8 (junto com a introdução de RBAC administrativo), não bloqueia hoje porque toda checagem de negócio é revalidada on-chain (RNF-16). Ver `SEC-B02` em `docs/backend/security-checklist.md`.
 
 ## Sprints/features ainda não iniciadas
 
@@ -31,6 +32,8 @@ Nenhuma — Sprint 4 está em andamento (ver `sprints/sprint-04-seguranca-e-prep
 Não duplicadas aqui — tracker completo (imóvel piloto, SPE, orçamento, equipe, investidores mapeados etc.) em [`on-chain/roadmap.md`](on-chain/roadmap.md#tracker-das-perguntas-em-aberto-pitch-slide-8).
 
 ## Resolvidas
+
+- **2026-09-02** — Ausência total de autenticação no backend (nenhuma rota, de nenhuma feature, tinha qualquer mecanismo de auth) resolvida para a superfície administrativa: Sprint 8 (`005-painel-administrativo`) introduziu RBAC via chave estática (`ADMIN_API_KEY`, header `x-admin-api-key`) cobrindo todas as rotas `/admin/*`. Checklist de segurança off-chain publicado pela primeira vez (`docs/backend/security-checklist.md`, item pendente desde a Sprint 5/feature 001). O `scripts/deposit-yield.ts` manual foi removido — depósito de rendimento agora é `POST /admin/imoveis/:id/depositar-rendimento`.
 
 - **2026-08-20** — `SEC-10` (PII on-chain) mitigado: `IdentityRegistry` só grava claims/hash de assinatura, nunca CPF/documento.
 - **2026-08-20** — `SEC-02`, `SEC-03`, `SEC-05`, `SEC-12` mitigados após `PropertyToken`/`PropertyFactory` (Sprint 2): access control testado em ambos os contratos, sem blocos `unchecked`, imutabilidade via clone EIP-1167 com inicialização travada, `criarImovel` restrito a `PLATFORM_ADMIN_ROLE`.

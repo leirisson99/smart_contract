@@ -5,7 +5,7 @@ import { isVerifiedOnChain } from "../services/trustedIssuerSigner.js";
 import { balanceOfOnChain, comprarCotasOnChain, lerImovelOnChain } from "../services/propertyChain.js";
 import { garantirGasParaCarteira, garantirSaldoMoedaTeste } from "../services/gasSponsor.js";
 
-async function serializeImovel(property: { id: string; imagemUrl: string | null; rendimentoEstimadoAnual: number; status: string; valorMinimoInvestimento: string; propertyTokenAddress: string }) {
+export async function serializeImovel(property: { id: string; imagemUrl: string | null; rendimentoEstimadoAnual: number; status: string; valorMinimoInvestimento: string; propertyTokenAddress: string }) {
   const onChain = await lerImovelOnChain(property.propertyTokenAddress as `0x${string}`);
   return {
     id: property.id,

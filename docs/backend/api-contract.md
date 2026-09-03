@@ -16,7 +16,7 @@ Toda resposta de erro de negócio (4xx) deve ter o corpo:
 { "codigo": "SEM_KYC" }
 ```
 
-`codigo` é um dos 8 valores abaixo (`CodigoErro` em `frontend/lib/errors.ts`). Erros inesperados (5xx, infraestrutura) usam `ERRO_DESCONHECIDO`.
+`codigo` é um dos 9 valores abaixo (`CodigoErro` em `frontend/lib/errors.ts`). Erros inesperados (5xx, infraestrutura) usam `ERRO_DESCONHECIDO`.
 
 | Código | Mensagem exibida ao investidor (pt-BR) | Quando ocorre |
 |---|---|---|
@@ -27,6 +27,7 @@ Toda resposta de erro de negócio (4xx) deve ter o corpo:
 | `LISTAGEM_JA_VENDIDA` | "Essa listagem já foi vendida para outro investidor." | Compra no mercado secundário sobre listagem já `vendida`/`cancelada` (004) |
 | `LISTAGEM_NAO_ENCONTRADA` | "Essa listagem não está mais disponível." | Compra/cancelamento sobre `id` inexistente (004) |
 | `SALDO_INSUFICIENTE` | "Você não possui cotas suficientes para criar essa listagem." | Criação de listagem além do holding do investidor (004) |
+| `ROLE_INVALIDA` | "Acesso restrito ao gestor da plataforma." | Chamada a qualquer rota `/admin/*` sem o header `x-admin-api-key` válido (005) |
 | `ERRO_DESCONHECIDO` | "Não foi possível concluir a ação. Tente novamente em instantes." | Qualquer falha não mapeada (timeout de RPC, erro de infraestrutura) |
 
 ## Endpoints por feature
@@ -66,10 +67,14 @@ O `claim` automático (RF-24) é um job periódico, não um endpoint chamado pel
 ### 005 — Painel Administrativo ([spec](features/005-painel-administrativo/spec.md))
 | Endpoint | Payload de entrada | Retorno (sucesso) | Erros possíveis |
 |---|---|---|---|
-| `GET /admin/investidores` | — (gestor autenticado) | `Investidor[]` | `403` se role inválida |
-| `POST /admin/imoveis` | `{ nome, imagemUrl, valorTotal, totalCotas, rendimentoEstimadoAnual }` | `Imovel` criado (endereço do `PropertyToken`) | `403` se role inválida |
-| `POST /admin/imoveis/:id/depositar-rendimento` | `{ valor }` | confirmação estruturada | `403` se role inválida |
+| `GET /admin/investidores` | — (header `x-admin-api-key`) | `{ id, nome, walletAddress, statusKyc }[]` | `403 ROLE_INVALIDA` |
+| `POST /admin/imoveis` | `{ nome, imagemUrl?, valorTotal (wei), totalCotas, rendimentoEstimadoAnual }` | `Imovel` criado (mesmo formato de `GET /imoveis`) | `403 ROLE_INVALIDA`; `400` se `valorTotal` não for divisível por `totalCotas` |
+| `POST /admin/imoveis/:id/depositar-rendimento` | `{ valor (wei) }` | `{ idCiclo, txHash }` | `403 ROLE_INVALIDA`; `404` se imóvel não existir |
+
+Todas as rotas `/admin/*` exigem o header `x-admin-api-key` (feature 005 — único mecanismo de autenticação do backend hoje, decisão em [`features/005-painel-administrativo/plan.md`](features/005-painel-administrativo/plan.md)). `statusKyc` retorna o enum bruto do backend (`PENDING`/`PROCESSING`/`APPROVED`/`REJECTED`, sem submissão = `PENDING`), traduzido pelo frontend como em `GET /investors/:id/kyc`.
 
 ## Gap conhecido (2026-09-02)
 
-O código real de 001 (`backend/src/routes/{investors,kyc,webhooks}.ts`) hoje retorna erros como strings livres (`{ error: "fullName e cpf sao obrigatorios" }`), não neste formato — permanece como dívida técnica (não alinhado nesta sprint). Os endpoints de 002/003 (Sprint 6) e 004 (Sprint 7) já foram implementados seguindo o vocabulário `codigo` para os cenários RNF-16/de negócio (`SEM_KYC`, `COTAS_INSUFICIENTES`, `VALOR_MINIMO_NAO_ATINGIDO`, `SALDO_INSUFICIENTE`, `LISTAGEM_JA_VENDIDA`, `LISTAGEM_NAO_ENCONTRADA`); erros de "recurso não encontrado" (imóvel/investidor/listagem inexistente, ou listagem que não pertence ao investidor) usam mensagens livres, por não terem código próprio nesta lista. 005 (Sprint 8) deve seguir o mesmo padrão.
+O código real de 001 (`backend/src/routes/{investors,kyc,webhooks}.ts`) hoje retorna erros como strings livres (`{ error: "fullName e cpf sao obrigatorios" }`), não neste formato — permanece como dívida técnica (não alinhado nesta sprint). Os endpoints de 002/003 (Sprint 6), 004 (Sprint 7) e 005 (Sprint 8) já foram implementados seguindo o vocabulário `codigo` para os cenários RNF-16/de negócio (`SEM_KYC`, `COTAS_INSUFICIENTES`, `VALOR_MINIMO_NAO_ATINGIDO`, `SALDO_INSUFICIENTE`, `LISTAGEM_JA_VENDIDA`, `LISTAGEM_NAO_ENCONTRADA`, `ROLE_INVALIDA`); erros de "recurso não encontrado" (imóvel/investidor/listagem inexistente, ou listagem que não pertence ao investidor) e de validação de payload usam mensagens livres, por não terem código próprio nesta lista.
+
+As rotas de `001`-`004` (investidor) permanecem sem nenhuma autenticação mesmo após esta sprint — `investorId` seguem indo explícito no payload, sem sessão. Avaliado como parte da Sprint 8 (`docs/sprints/08-painel-administrativo-e-seguranca-backend.md`) e mantido como dívida aceita da POC: o RBAC introduzido cobre o gap de maior severidade (ações administrativas que criam imóveis e movem fundos de rendimento), enquanto autenticar o investidor exigiria um mecanismo de sessão/login que nenhuma feature de negócio previu — rastreado como melhoria futura, não um bloqueio de código (ver checklist de segurança off-chain, `security-checklist.md`).

@@ -5,7 +5,6 @@ import { prisma } from "../src/db/client.js";
 import { buildServer } from "../src/server.js";
 import { config } from "../src/config.js";
 import { propertyTokenAbi } from "../src/abi/PropertyToken.js";
-import { dividendDistributorAbi } from "../src/abi/DividendDistributor.js";
 import { mockErc20Abi } from "../src/abi/MockERC20.js";
 import { runYieldClaimJob } from "../src/services/yieldClaimJob.js";
 
@@ -117,23 +116,19 @@ describe.skipIf(!shouldRun)("fluxo de investimento primario + rendimentos end-to
     expect(portfolioAntes.json().holdings[0]).toMatchObject({ cotas: 1 });
     expect(portfolioAntes.json().rendimentoPendenteClaim).toBe("0");
 
-    // Gestor deposita rendimento (RF-25, feature 005 - chamado direto aqui
-    // via viem porque o endpoint administrativo ainda nao existe, Sprint 8).
+    // Gestor deposita rendimento (RF-25, feature 005) via o endpoint
+    // administrativo real - a carteira do gestor (GESTOR_PRIVATE_KEY,
+    // mesma DEPLOYER_PRIVATE_KEY usada para deployar o pipeline acima) e
+    // financiada automaticamente com a moeda de teste pela propria rota
+    // (ver `adminChain.depositarRendimentoOnChain`).
     const valorRendimento = parseEther("100");
-    const approveHash = await deployerWallet.writeContract({
-      address: MOEDA_PAGAMENTO_ADDRESS!,
-      abi: mockErc20Abi,
-      functionName: "approve",
-      args: [DIVIDEND_DISTRIBUTOR_ADDRESS!, valorRendimento],
+    const deposito = await app.inject({
+      method: "POST",
+      url: `/admin/imoveis/${property.id}/depositar-rendimento`,
+      headers: { "x-admin-api-key": config.adminApiKey },
+      payload: { valor: valorRendimento.toString() },
     });
-    await publicClient.waitForTransactionReceipt({ hash: approveHash });
-    const depositoHash = await deployerWallet.writeContract({
-      address: DIVIDEND_DISTRIBUTOR_ADDRESS!,
-      abi: dividendDistributorAbi,
-      functionName: "depositarRendimento",
-      args: [valorRendimento],
-    });
-    await publicClient.waitForTransactionReceipt({ hash: depositoHash });
+    expect(deposito.statusCode).toBe(200);
 
     const jobResult = await runYieldClaimJob();
     expect(jobResult.claimsExecutados).toBeGreaterThanOrEqual(1);

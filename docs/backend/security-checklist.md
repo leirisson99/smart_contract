@@ -1,0 +1,23 @@
+---
+status: approved
+owner: tech-lead
+last_updated: 2026-09-02
+---
+
+# Checklist de Segurança do Backend (Off-chain)
+
+Espelha [`../on-chain/security-checklist.md`](../on-chain/security-checklist.md), mas para a camada off-chain (backend Fastify + Postgres). Item pendente da task 7 de [`features/001-onboarding-e-custodia/tasks.md`](features/001-onboarding-e-custodia/tasks.md), fechado nesta sprint (005, Sprint 8) junto com a introdução de autenticação/RBAC.
+
+| ID | Item | Feature(s) | Mitigação especificada | Status |
+|---|---|---|---|---|
+| SEC-B01 | Ausência de autenticação/RBAC nas rotas administrativas | 005 | Chave estática `ADMIN_API_KEY` (header `x-admin-api-key`), comparada em tempo constante, aplicada a todas as rotas `/admin/*` via `preHandler` (`backend/src/middleware/adminAuth.ts`). Decisão e alternativas descartadas em [`features/005-painel-administrativo/plan.md`](features/005-painel-administrativo/plan.md) | mitigado |
+| SEC-B02 | Ausência de autenticação/sessão nas rotas do investidor (001-004) | 001, 002, 003, 004 | Não mitigado nesta sprint — `investorId` explícito no payload, sem sessão/login. Avaliado (task obrigatória desta sprint) e aceito como dívida da POC: o risco prático é baixo porque nenhuma rota move fundos sem revalidar KYC/saldo on-chain no momento da chamada (RNF-16, ver SEC-B03), e não há tela de login em nenhuma feature de frontend prevista para a POC. Melhoria futura: sessão real (cookie assinado ou JWT) antes de qualquer captação de investidores de varejo (ver `../on-chain/roadmap.md`) | risco aceito |
+| SEC-B03 | Backend como última linha de defesa (RNF-16) | 002, 004, 005 | Toda checagem de negócio feita pelo backend (KYC, saldo, role administrativa) é otimista/UX — o contrato revalida de forma independente (`ComplianceModule.canTransfer`, `PLATFORM_ADMIN_ROLE`, `GESTOR_ROLE`). Uma falha do backend em barrar uma chamada nunca resulta em uma transação on-chain indevida | mitigado |
+| SEC-B04 | Exposição de dados pessoais (PII) em payload on-chain | 001 | Backend nunca envia CPF/documento para os contratos — apenas a claim booleana (`emitirClaim`), mesmo princípio de SEC-10 do checklist on-chain (ADR-0006) | mitigado |
+| SEC-B05 | CPF em repouso no banco | 001 | Campo `cpfEncrypted` (`Investor.cpfEncrypted`), cifrado via `walletCustody.encryptSecret` antes de gravar. Chave (`WALLET_ENC_KEY`) hoje é um valor de dev em `.env`, não um HSM/KMS — mesma ressalva de custódia real de `SEC-11` do checklist on-chain, rastreada em [`../PENDENCIAS.md`](../PENDENCIAS.md) | parcialmente mitigado |
+| SEC-B06 | Chave privada da carteira custodial do investidor em repouso | 001 | Campo `Investor.walletKeyEnc`, cifrado com o mesmo mecanismo de SEC-B05 — mesma ressalva de custódia real (HSM/KMS) pendente | parcialmente mitigado |
+| SEC-B07 | Controle de acesso ao banco de dados | todas | Fora do escopo de código desta POC — depende do ambiente de deploy (rede privada, credenciais rotacionadas, TLS). Não avaliado nesta sprint; rastreado como pendência de infraestrutura, não de aplicação | não avaliado |
+| SEC-B08 | Chaves privadas operacionais do backend em `.env` (Trusted Issuer, gas sponsor, gestor) | 001, 005 | `TRUSTED_ISSUER_PRIVATE_KEY`, `GAS_SPONSOR_PRIVATE_KEY`, `GESTOR_PRIVATE_KEY` — todas contas de teste do Anvil em dev/POC, nunca versionadas (`.env` no `.gitignore`). Mesma ressalva de custódia real de `SEC-11` on-chain: produção exige HSM/KMS, rastreado em [`../PENDENCIAS.md`](../PENDENCIAS.md) | parcialmente mitigado |
+| SEC-B09 | Vocabulário de erro consistente (não vazar detalhe interno de infraestrutura) | todas | Erros de negócio usam `codigo` fechado ([`api-contract.md`](api-contract.md)); falhas inesperadas (RPC, infraestrutura) sempre respondem `ERRO_DESCONHECIDO`, nunca a mensagem/stack originais — exceção conhecida: 001 ainda usa mensagens livres em vez de `codigo` (ver "Gap conhecido" em `api-contract.md`) | parcialmente mitigado |
+
+**Estado em 2026-09-02 (Sprint 8)**: 4/9 itens `mitigado`, 3/9 `parcialmente mitigado` (todos aguardando a mesma decisão de custódia real de chaves — SEC-11 on-chain), 1/9 `risco aceito` (SEC-B02, decisão de escopo da POC) e 1/9 `não avaliado` (SEC-B07, infraestrutura de deploy, fora do escopo de código). O item de maior severidade identificado (ausência total de autenticação em qualquer rota administrativa, que permitia criar imóveis e mover fundos de rendimento sem nenhum controle) foi fechado nesta sprint (SEC-B01). Nenhum item crítico em aberto sem dono ou plano — os pendentes de custódia real dependem da mesma decisão de negócio já rastreada para o Trusted Issuer em [`../PENDENCIAS.md`](../PENDENCIAS.md).

@@ -1,14 +1,14 @@
 ---
-status: draft
+status: approved
 owner: tech-lead
-last_updated: 2026-09-01
+last_updated: 2026-09-02
 ---
 
 # Tasks — Feature Backend 005
 
-1. [ ] Implementar controle de acesso (RBAC) de papel administrativo/gestor.
-2. [ ] Implementar endpoint de criação de imóvel, acionando `PropertyFactory.criarImovel` (depende de `../../../on-chain/features/002-tokenizacao-imovel` concluída).
-3. [ ] Implementar endpoint de depósito de rendimento mensal, acionando `DividendDistributor.depositarRendimento` (depende de `../../../on-chain/features/003-distribuicao-rendimentos` concluída).
-4. [ ] Implementar endpoint de consulta de status de KYC dos investidores, lendo os dados de [001](../001-onboarding-e-custodia/tasks.md).
-5. [ ] Testes de integração e end-to-end em testnet Polygon.
-6. [ ] Revisão de segurança (controle de acesso dos endpoints administrativos — apenas papel de admin aciona `PropertyFactory`/`DividendDistributor`).
+1. [x] Implementar controle de acesso (RBAC) de papel administrativo/gestor. Chave estática `ADMIN_API_KEY` no header `x-admin-api-key` (`backend/src/middleware/adminAuth.ts`), comparada em tempo constante, aplicada como `preHandler` a todas as rotas de `backend/src/routes/admin.ts` (decisão registrada em `plan.md`). Único mecanismo de autenticação do backend hoje — as rotas de `001`-`004` seguem sem autenticação, gap avaliado e documentado como dívida aceita da POC em [`../../api-contract.md`](../../api-contract.md) e no checklist de segurança off-chain.
+2. [x] Implementar endpoint de criação de imóvel, acionando `PropertyFactory.criarImovel` (depende de `../../../on-chain/features/002-tokenizacao-imovel` concluída). `POST /admin/imoveis` (`backend/src/routes/admin.ts` + `backend/src/services/adminChain.ts`) — aciona `criarImovel`, deploya o `DividendDistributor` dedicado do imóvel (não existe Factory para ele) e concede `SNAPSHOT_ROLE` a ele no `PropertyToken` recém-criado; persiste os metadados off-chain (`imagemUrl`, `rendimentoEstimadoAnual`, `valorMinimoInvestimento` default = preço de 1 cota) e retorna o mesmo formato `Imovel` de `GET /imoveis`.
+3. [x] Implementar endpoint de depósito de rendimento mensal, acionando `DividendDistributor.depositarRendimento` (depende de `../../../on-chain/features/003-distribuicao-rendimentos` concluída). `POST /admin/imoveis/:id/depositar-rendimento` — financia a carteira do gestor com a moeda de teste (mesmo mecanismo usado para as carteiras custodiais dos investidores, já que o `MockERC20` não faz mint inicial para ninguém), aprova o `DividendDistributor` e deposita; `idCiclo` extraído do evento `RendimentoDepositado` no recibo. Substitui o `scripts/deposit-yield.ts` manual, removido nesta sprint (`backend/scripts/deposit-yield.ts`, `npm run deposit-yield`).
+4. [x] Implementar endpoint de consulta de status de KYC dos investidores, lendo os dados de [001](../001-onboarding-e-custodia/tasks.md). `GET /admin/investidores` — retorna `{ id, nome, walletAddress, statusKyc }` por investidor, cruzando `Investor` com `KycSubmission` (investidor sem submissão aparece como `PENDING`).
+5. [x] Testes de integração (`backend/test/admin.routes.test.ts`, mockando `adminChain`/`propertyChain`) cobrindo os cenários de `spec.md` (criação de imóvel, validação de `valorTotal` não divisível por `totalCotas`, depósito de rendimento, imóvel inexistente, transação revertida on-chain, rejeição sem/com chave administrativa inválida) e end-to-end (`backend/test/property-flow.e2e.test.ts`, `RUN_E2E=1`, roteado agora pelo endpoint real em vez de chamada direta via viem). Verificado também manualmente ponta a ponta contra Anvil local (`scripts/dev-e2e-up.sh`): criação de imóvel real, compra de cota e depósito de rendimento via `POST /admin/imoveis/:id/depositar-rendimento`.
+6. [x] Revisão de segurança (controle de acesso dos endpoints administrativos — apenas papel de admin aciona `PropertyFactory`/`DividendDistributor`). Ver checklist de segurança off-chain (`../../security-checklist.md`, novo nesta sprint) — RNF-16 mantido: mesmo que o middleware `x-admin-api-key` falhe em barrar a chamada, o contrato revalida `PLATFORM_ADMIN_ROLE`/`GESTOR_ROLE` de qualquer forma.

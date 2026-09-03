@@ -1,7 +1,7 @@
 ---
-status: draft
+status: approved
 owner: tech-lead
-last_updated: 2026-09-01
+last_updated: 2026-09-02
 ---
 
 # Implementação — Feature Backend 005
@@ -29,4 +29,11 @@ Depende dos contratos de `../../../on-chain/features/002-tokenizacao-imovel` e `
 Todos os cenários de `spec.md` cobertos por teste de integração ou end-to-end.
 
 ## Status de implementação
-Nenhum código ainda — spec em `draft`, precisa virar `approved` antes de qualquer implementação (SDD, ver `../../../on-chain/00-constitution.md`).
+
+Implementada nesta sprint (Sprint 8, 2026-09-02). Ver detalhe em `tasks.md` e a decisão de mecanismo de autenticação em `plan.md`.
+
+- `backend/src/middleware/adminAuth.ts` — RBAC via chave estática `ADMIN_API_KEY` (header `x-admin-api-key`), único mecanismo de autenticação do backend hoje.
+- `backend/src/routes/admin.ts` + `backend/src/services/adminChain.ts` — os 3 endpoints (`GET /admin/investidores`, `POST /admin/imoveis`, `POST /admin/imoveis/:id/depositar-rendimento`).
+- `backend/src/abi/PropertyFactory.ts` (novo) e `backend/src/abi/DividendDistributor.ts` (bytecode adicionado, para deploy do distributor a cada imóvel criado).
+- `backend/scripts/deposit-yield.ts` removido — o passo do gestor deixou de ser manual, agora é `POST /admin/imoveis/:id/depositar-rendimento`; `backend/test/property-flow.e2e.test.ts` e `scripts/dev-e2e-up.sh` atualizados de acordo.
+- Testado com mocks (`backend/test/admin.routes.test.ts`, 8 cenários) e manualmente ponta a ponta contra Anvil local (criação de imóvel, compra de cota, depósito de rendimento via o endpoint real).

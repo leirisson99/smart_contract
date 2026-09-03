@@ -41,6 +41,7 @@ echo "IdentityRegistry=$IDENTITY_REGISTRY_ADDRESS ComplianceModule=$COMPLIANCE_M
 echo "== atualizando backend/.env (IDENTITY_REGISTRY_ADDRESS, PORT) =="
 sed -i "s|^IDENTITY_REGISTRY_ADDRESS=.*|IDENTITY_REGISTRY_ADDRESS=\"$IDENTITY_REGISTRY_ADDRESS\"|" "$BACKEND_ENV"
 sed -i 's|^PORT=.*|PORT="3333"|' "$BACKEND_ENV"
+sed -i "s|^GESTOR_PRIVATE_KEY=.*|GESTOR_PRIVATE_KEY=\"$DEPLOYER_PRIVATE_KEY\"|" "$BACKEND_ENV"
 
 echo "== registrando o backend como Trusted Issuer =="
 cd "$BACKEND_DIR"
@@ -52,9 +53,13 @@ OUT2=$(PRIVATE_KEY=$DEPLOYER_PRIVATE_KEY \
   IDENTITY_REGISTRY_ADDRESS=$IDENTITY_REGISTRY_ADDRESS \
   COMPLIANCE_MODULE_ADDRESS=$COMPLIANCE_MODULE_ADDRESS \
   forge script script/DeployPropertyPipeline.s.sol --rpc-url "$RPC_URL" --broadcast)
+PROPERTY_FACTORY_ADDRESS=$(echo "$OUT2" | grep "PropertyFactory:" | awk '{print $NF}')
 PROPERTY_TOKEN_ADDRESS=$(echo "$OUT2" | grep "PropertyToken (imovel de exemplo):" | awk '{print $NF}')
 DIVIDEND_DISTRIBUTOR_ADDRESS=$(echo "$OUT2" | grep "DividendDistributor:" | awk '{print $NF}')
-echo "PropertyToken=$PROPERTY_TOKEN_ADDRESS DividendDistributor=$DIVIDEND_DISTRIBUTOR_ADDRESS"
+echo "PropertyFactory=$PROPERTY_FACTORY_ADDRESS PropertyToken=$PROPERTY_TOKEN_ADDRESS DividendDistributor=$DIVIDEND_DISTRIBUTOR_ADDRESS"
+
+echo "== atualizando backend/.env (PROPERTY_FACTORY_ADDRESS) =="
+sed -i "s|^PROPERTY_FACTORY_ADDRESS=.*|PROPERTY_FACTORY_ADDRESS=\"$PROPERTY_FACTORY_ADDRESS\"|" "$BACKEND_ENV"
 
 echo "== populando a tabela Property =="
 cd "$BACKEND_DIR"
@@ -65,4 +70,5 @@ PROPERTY_TOKEN_ADDRESS=$PROPERTY_TOKEN_ADDRESS \
 echo ""
 echo "Pronto. Anvil rodando em PID $ANVIL_PID."
 echo "Agora rode em terminais separados: 'npm run dev' em backend/ e em frontend/."
-echo "Para depositar rendimento (passo do gestor, ainda manual): PROPERTY_ID=<id> VALOR=100 npm run deposit-yield (em backend/)."
+echo "Para depositar rendimento (painel do gestor, feature 005): POST http://localhost:3333/admin/imoveis/<id>/depositar-rendimento"
+echo "  com header 'x-admin-api-key: <ADMIN_API_KEY do backend/.env>' e body {\"valor\": \"<wei>\"}."

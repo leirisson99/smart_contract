@@ -14,8 +14,7 @@
     "grant-trusted-issuer": "tsx scripts/grant-trusted-issuer.ts",
     "grant-marketplace-kyc": "tsx scripts/grant-marketplace-kyc.ts",
     "run-yield-claim-job": "tsx scripts/run-yield-claim-job.ts",
-    "seed-property": "tsx scripts/seed-local-property.ts",
-    "deposit-yield": "tsx scripts/deposit-yield.ts"
+    "seed-property": "tsx scripts/seed-local-property.ts"
   },
   "keywords": [],
   "dependencies": {

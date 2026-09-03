@@ -37,7 +37,7 @@ function InvestorsTable({ investidores }: { investidores: Investidor[] }) {
             <thead>
               <tr className="border-b border-outline-variant text-left text-label-sm text-on-surface-variant">
                 <th className="px-4 py-2 sm:px-6">Nome</th>
-                <th className="px-4 py-2 sm:px-6">E-mail</th>
+                <th className="px-4 py-2 sm:px-6">Carteira</th>
                 <th className="px-4 py-2 sm:px-6">KYC</th>
               </tr>
             </thead>
@@ -45,7 +45,9 @@ function InvestorsTable({ investidores }: { investidores: Investidor[] }) {
               {filtrados.map((investidor) => (
                 <tr key={investidor.id} className="border-b border-outline-variant last:border-0">
                   <td className="px-4 py-3 font-medium sm:px-6">{investidor.nome}</td>
-                  <td className="px-4 py-3 text-on-surface-variant sm:px-6">{investidor.email}</td>
+                  <td className="px-4 py-3 font-mono text-label-sm text-on-surface-variant sm:px-6">
+                    {investidor.walletAddress ?? "—"}
+                  </td>
                   <td className="px-4 py-3 sm:px-6">
                     <StatusChip tone={CONFIG[investidor.statusKyc].tone}>{CONFIG[investidor.statusKyc].label}</StatusChip>
                   </td>

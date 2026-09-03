@@ -1,11 +1,62 @@
-import { delay } from "./delay";
-import { imoveis, investidoresAdmin } from "./fixtures";
-import type { Imovel, Investidor } from "./types";
+import { apiGetAdmin, apiPostAdmin } from "./http";
+import { reaisParaWei, weiParaReais } from "./money";
+import type { Imovel, Investidor, StatusImovel, StatusKyc } from "./types";
+
+type ImovelBackend = {
+  id: string;
+  nome: string;
+  imagemUrl: string | null;
+  valorTotal: string;
+  totalCotas: number;
+  cotasRestantes: number;
+  precoPorCota: string;
+  rendimentoEstimadoAnual: number;
+  status: string;
+  valorMinimoInvestimento: string;
+};
+
+const IMAGEM_FALLBACK =
+  "https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop";
+
+const STATUS_IMOVEL_BACKEND_PARA_FRONTEND: Record<string, StatusImovel> = {
+  EM_CAPTACAO: "em_captacao",
+  VENDIDO: "vendido",
+  ALUGADO: "alugado",
+};
+
+const STATUS_KYC_BACKEND_PARA_FRONTEND: Record<string, StatusKyc> = {
+  PENDING: "pendente",
+  PROCESSING: "pendente",
+  APPROVED: "aprovado",
+  REJECTED: "reprovado",
+};
+
+function converterImovel(imovel: ImovelBackend): Imovel {
+  return {
+    id: imovel.id,
+    nome: imovel.nome,
+    imagemUrl: imovel.imagemUrl ?? IMAGEM_FALLBACK,
+    valorTotal: weiParaReais(imovel.valorTotal),
+    totalCotas: imovel.totalCotas,
+    cotasRestantes: imovel.cotasRestantes,
+    precoPorCota: weiParaReais(imovel.precoPorCota),
+    rendimentoEstimadoAnual: imovel.rendimentoEstimadoAnual,
+    status: STATUS_IMOVEL_BACKEND_PARA_FRONTEND[imovel.status] ?? "em_captacao",
+    valorMinimoInvestimento: weiParaReais(imovel.valorMinimoInvestimento),
+  };
+}
+
+type InvestidorBackend = { id: string; nome: string; walletAddress: string; statusKyc: string };
 
 /** RF-30: painel do gestor. Espelha `005-painel-administrativo`. */
 export async function listarInvestidoresAdmin(): Promise<Investidor[]> {
-  await delay(500);
-  return investidoresAdmin.map((item) => ({ ...item }));
+  const investidores = await apiGetAdmin<InvestidorBackend[]>("/admin/investidores");
+  return investidores.map((investidor) => ({
+    id: investidor.id,
+    nome: investidor.nome,
+    walletAddress: investidor.walletAddress,
+    statusKyc: STATUS_KYC_BACKEND_PARA_FRONTEND[investidor.statusKyc] ?? "pendente",
+  }));
 }
 
 export interface DadosNovoImovel {
@@ -17,23 +68,16 @@ export interface DadosNovoImovel {
 }
 
 export async function criarImovel(dados: DadosNovoImovel): Promise<Imovel> {
-  await delay(1200);
-  const novoImovel: Imovel = {
-    id: `imv-${Date.now()}`,
+  const imovel = await apiPostAdmin<ImovelBackend>("/admin/imoveis", {
     nome: dados.nome,
     imagemUrl: dados.imagemUrl,
-    valorTotal: dados.valorTotal,
+    valorTotal: reaisParaWei(dados.valorTotal),
     totalCotas: dados.totalCotas,
-    cotasRestantes: dados.totalCotas,
-    precoPorCota: Math.round(dados.valorTotal / dados.totalCotas),
     rendimentoEstimadoAnual: dados.rendimentoEstimadoAnual,
-    status: "em_captacao",
-    valorMinimoInvestimento: Math.round(dados.valorTotal / dados.totalCotas),
-  };
-  imoveis.unshift(novoImovel);
-  return novoImovel;
+  });
+  return converterImovel(imovel);
 }
 
-export async function depositarRendimento(_imovelId: string, _valor: number): Promise<void> {
-  await delay(1200);
+export async function depositarRendimento(imovelId: string, valor: number): Promise<void> {
+  await apiPostAdmin(`/admin/imoveis/${imovelId}/depositar-rendimento`, { valor: reaisParaWei(valor) });
 }

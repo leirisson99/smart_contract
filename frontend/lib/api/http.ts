@@ -31,3 +31,20 @@ export function apiPost<T>(path: string, payload?: unknown): Promise<T> {
   // Fastify rejeita com 400 uma requisicao com esse header mas sem corpo.
   return request<T>(path, { method: "POST", body: JSON.stringify(payload ?? {}) });
 }
+
+/**
+ * Header enviado pelo painel do gestor em toda chamada a `/admin/*`
+ * (feature 005 - unico mecanismo de autenticacao/RBAC do backend hoje, ver
+ * `docs/backend/features/005-painel-administrativo/plan.md`). So existe uma
+ * unica chave/um unico gestor na POC - sem tela de login, ver non-goals da
+ * constituicao do projeto.
+ */
+const ADMIN_HEADERS = { "x-admin-api-key": process.env.NEXT_PUBLIC_ADMIN_API_KEY ?? "" };
+
+export function apiGetAdmin<T>(path: string): Promise<T> {
+  return request<T>(path, { headers: ADMIN_HEADERS });
+}
+
+export function apiPostAdmin<T>(path: string, payload?: unknown): Promise<T> {
+  return request<T>(path, { method: "POST", headers: ADMIN_HEADERS, body: JSON.stringify(payload ?? {}) });
+}

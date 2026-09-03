@@ -10,6 +10,7 @@ export type CodigoErro =
   | "LISTAGEM_JA_VENDIDA"
   | "LISTAGEM_NAO_ENCONTRADA"
   | "SALDO_INSUFICIENTE"
+  | "ROLE_INVALIDA"
   | "ERRO_DESCONHECIDO";
 
 const MENSAGENS: Record<CodigoErro, string> = {
@@ -20,6 +21,7 @@ const MENSAGENS: Record<CodigoErro, string> = {
   LISTAGEM_JA_VENDIDA: "Essa listagem já foi vendida para outro investidor.",
   LISTAGEM_NAO_ENCONTRADA: "Essa listagem não está mais disponível.",
   SALDO_INSUFICIENTE: "Você não possui cotas suficientes para criar essa listagem.",
+  ROLE_INVALIDA: "Acesso restrito ao gestor da plataforma.",
   ERRO_DESCONHECIDO: "Não foi possível concluir a ação. Tente novamente em instantes.",
 };
 
