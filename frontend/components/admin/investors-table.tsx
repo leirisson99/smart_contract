@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/status-chip";
+import { KYC_STATUS_TONE } from "@/components/kyc/kyc-status";
 import type { Investidor, StatusKyc } from "@/lib/api/types";
 
-const CONFIG: Record<StatusKyc, { label: string; tone: "warning" | "success" | "error" }> = {
-  pendente: { label: "Pendente", tone: "warning" },
-  aprovado: { label: "Aprovado", tone: "success" },
-  reprovado: { label: "Reprovado", tone: "error" },
+const LABEL: Record<StatusKyc, string> = {
+  pendente: "Pendente",
+  aprovado: "Aprovado",
+  reprovado: "Reprovado",
 };
 
 function InvestorsTable({ investidores }: { investidores: Investidor[] }) {
@@ -49,7 +50,7 @@ function InvestorsTable({ investidores }: { investidores: Investidor[] }) {
                     {investidor.walletAddress ?? "—"}
                   </td>
                   <td className="px-4 py-3 sm:px-6">
-                    <StatusChip tone={CONFIG[investidor.statusKyc].tone}>{CONFIG[investidor.statusKyc].label}</StatusChip>
+                    <StatusChip tone={KYC_STATUS_TONE[investidor.statusKyc]}>{LABEL[investidor.statusKyc]}</StatusChip>
                   </td>
                 </tr>
               ))}

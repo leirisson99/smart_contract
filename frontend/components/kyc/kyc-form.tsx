@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert } from "@/components/ui/alert";
-import { TransactionalButton, type TransactionState } from "@/components/feedback/transactional-button";
+import { TransactionalButton } from "@/components/feedback/transactional-button";
+import { useTransacao } from "@/components/feedback/use-transacao";
 import { DocumentUploadField } from "./document-upload-field";
 import { KycStatusCard } from "./kyc-status-card";
 import { cadastrar, obterStatusKyc } from "@/lib/api/kyc";
@@ -17,35 +18,34 @@ function KycForm() {
   const [email, setEmail] = useState("");
   const [cpf, setCpf] = useState("");
   const [documento, setDocumento] = useState<File | null>(null);
-  const [state, setState] = useState<TransactionState>("idle");
-  const [erro, setErro] = useState<string | null>(null);
+  const { state, erro, executar } = useTransacao();
   const [status, setStatus] = useState<StatusKyc | null>(null);
+  const [erroPolling, setErroPolling] = useState<string | null>(null);
 
   useEffect(() => {
     if (!status || status === "aprovado" || status === "reprovado") return;
     const interval = setInterval(async () => {
-      const atual = await obterStatusKyc();
-      setStatus(atual);
+      try {
+        const atual = await obterStatusKyc();
+        setStatus(atual);
+        setErroPolling(null);
+      } catch (error) {
+        setErroPolling(traduzirErro(error));
+      }
     }, 2000);
     return () => clearInterval(interval);
   }, [status]);
 
-  async function handleSubmit(event: React.FormEvent) {
+  function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
-    setState("processando");
-    setErro(null);
-    try {
+    executar(async () => {
       const investidor = await cadastrar({ nome, email, cpf });
-      setState("sucesso");
       setStatus(investidor.statusKyc);
-    } catch (error) {
-      setState("erro");
-      setErro(traduzirErro(error));
-    }
+    });
   }
 
   if (status) {
-    return <KycStatusCard status={status} />;
+    return <KycStatusCard status={status} avisoErro={erroPolling} />;
   }
 
   return (

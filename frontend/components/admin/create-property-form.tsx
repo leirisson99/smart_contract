@@ -5,9 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert } from "@/components/ui/alert";
-import { TransactionalButton, type TransactionState } from "@/components/feedback/transactional-button";
+import { TransactionalButton } from "@/components/feedback/transactional-button";
+import { useTransacao } from "@/components/feedback/use-transacao";
 import { criarImovel } from "@/lib/api/admin";
-import { traduzirErro } from "@/lib/errors";
 
 function CreatePropertyForm({ onCriado }: { onCriado: () => void }) {
   const [nome, setNome] = useState("");
@@ -17,23 +17,17 @@ function CreatePropertyForm({ onCriado }: { onCriado: () => void }) {
   const [valorTotal, setValorTotal] = useState(1_000_000);
   const [totalCotas, setTotalCotas] = useState(100);
   const [rendimento, setRendimento] = useState(0.08);
-  const [state, setState] = useState<TransactionState>("idle");
-  const [erro, setErro] = useState<string | null>(null);
+  const { state, erro, executar } = useTransacao();
 
-  async function handleSubmit(event: FormEvent) {
+  function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    setState("processando");
-    setErro(null);
-    try {
-      await criarImovel({ nome, imagemUrl, valorTotal, totalCotas, rendimentoEstimadoAnual: rendimento });
-      setState("sucesso");
-      setNome("");
-      onCriado();
-      setTimeout(() => setState("idle"), 1500);
-    } catch (error) {
-      setState("erro");
-      setErro(traduzirErro(error));
-    }
+    executar(
+      () => criarImovel({ nome, imagemUrl, valorTotal, totalCotas, rendimentoEstimadoAnual: rendimento }),
+      () => {
+        setNome("");
+        onCriado();
+      },
+    );
   }
 
   return (

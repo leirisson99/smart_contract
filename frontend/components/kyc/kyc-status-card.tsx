@@ -1,31 +1,31 @@
 import { RiCheckboxCircleLine, RiCloseCircleLine, RiTimeLine } from "@remixicon/react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/status-chip";
+import { Alert } from "@/components/ui/alert";
+import { KYC_STATUS_TONE } from "./kyc-status";
 import type { StatusKyc } from "@/lib/api/types";
 
-const CONFIG: Record<StatusKyc, { label: string; tone: "warning" | "success" | "error"; icon: typeof RiTimeLine; descricao: string }> = {
+const CONFIG: Record<StatusKyc, { label: string; icon: typeof RiTimeLine; descricao: string }> = {
   pendente: {
     label: "Em análise",
-    tone: "warning",
     icon: RiTimeLine,
     descricao: "Estamos analisando seus documentos. Isso costuma levar alguns minutos — você não precisa fazer nada.",
   },
   aprovado: {
     label: "Aprovado",
-    tone: "success",
     icon: RiCheckboxCircleLine,
     descricao: "Sua identidade foi verificada. Você já pode investir nos imóveis disponíveis.",
   },
   reprovado: {
     label: "Reprovado",
-    tone: "error",
     icon: RiCloseCircleLine,
     descricao: "Não conseguimos verificar sua identidade com os documentos enviados. Entre em contato com o suporte.",
   },
 };
 
-function KycStatusCard({ status }: { status: StatusKyc }) {
-  const { label, tone, icon: Icon, descricao } = CONFIG[status];
+function KycStatusCard({ status, avisoErro }: { status: StatusKyc; avisoErro?: string | null }) {
+  const { label, icon: Icon, descricao } = CONFIG[status];
+  const tone = KYC_STATUS_TONE[status];
   return (
     <Card>
       <CardHeader>
@@ -37,8 +37,11 @@ function KycStatusCard({ status }: { status: StatusKyc }) {
           {label}
         </StatusChip>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex flex-col gap-3">
         <CardDescription>{descricao}</CardDescription>
+        {avisoErro ? (
+          <Alert tone="info">Não conseguimos atualizar o status agora ({avisoErro}). Vamos continuar tentando.</Alert>
+        ) : null}
       </CardContent>
     </Card>
   );

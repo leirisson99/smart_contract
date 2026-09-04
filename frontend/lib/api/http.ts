@@ -16,7 +16,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const body = await response.json().catch(() => null);
   if (!response.ok) {
     const codigo = (body?.codigo as CodigoErro | undefined) ?? "ERRO_DESCONHECIDO";
-    throw new ApiError(codigo);
+    throw new ApiError(codigo, response.status);
   }
   return body as T;
 }

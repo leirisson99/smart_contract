@@ -8,7 +8,7 @@ import type { Imovel } from "@/lib/api/types";
 
 function PropertyCard({ imovel }: { imovel: Imovel }) {
   const cotasVendidas = imovel.totalCotas - imovel.cotasRestantes;
-  const percentualVendido = (cotasVendidas / imovel.totalCotas) * 100;
+  const percentualVendido = imovel.totalCotas > 0 ? (cotasVendidas / imovel.totalCotas) * 100 : 0;
 
   return (
     <Link href={`/imoveis/${imovel.id}`} className="block">

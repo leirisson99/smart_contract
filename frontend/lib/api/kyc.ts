@@ -1,5 +1,5 @@
 import { apiGet, apiPost } from "./http";
-import { atualizarStatusKycSalvo, obterInvestidorSalvo, salvarInvestidor } from "./session";
+import { atualizarStatusKycSalvo, exigirInvestidor, obterInvestidorSalvo, salvarInvestidor } from "./session";
 import type { Investidor, StatusKyc } from "./types";
 
 export interface DadosCadastro {
@@ -8,7 +8,7 @@ export interface DadosCadastro {
   cpf: string;
 }
 
-const STATUS_BACKEND_PARA_FRONTEND: Record<string, StatusKyc> = {
+export const STATUS_KYC_BACKEND_PARA_FRONTEND: Record<string, StatusKyc> = {
   PENDING: "pendente",
   PROCESSING: "pendente",
   APPROVED: "aprovado",
@@ -35,14 +35,13 @@ export async function obterStatusKyc(): Promise<StatusKyc> {
   if (!investidor) return "pendente";
 
   const kyc = await apiGet<{ status: string }>(`/investors/${investidor.id}/kyc`);
-  const status = STATUS_BACKEND_PARA_FRONTEND[kyc.status] ?? "pendente";
+  const status = STATUS_KYC_BACKEND_PARA_FRONTEND[kyc.status] ?? "pendente";
   atualizarStatusKycSalvo(status);
   return status;
 }
 
 export async function obterInvestidorAtual(): Promise<Investidor> {
-  const investidor = obterInvestidorSalvo();
-  if (!investidor) throw new Error("nenhum investidor cadastrado nesta sessão");
+  const investidor = exigirInvestidor();
   const status = await obterStatusKyc();
   return { ...investidor, statusKyc: status };
 }

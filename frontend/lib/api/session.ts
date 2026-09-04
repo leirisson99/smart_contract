@@ -1,3 +1,4 @@
+import { ApiError } from "@/lib/errors";
 import type { Investidor } from "./types";
 
 /**
@@ -27,4 +28,11 @@ export function atualizarStatusKycSalvo(status: Investidor["statusKyc"]): void {
   const atual = obterInvestidorSalvo();
   if (!atual) return;
   salvarInvestidor({ ...atual, statusKyc: status });
+}
+
+/** Usado por toda chamada de API que exige um investidor na sessão atual. */
+export function exigirInvestidor(): Investidor {
+  const investidor = obterInvestidorSalvo();
+  if (!investidor) throw new ApiError("ERRO_DESCONHECIDO");
+  return investidor;
 }

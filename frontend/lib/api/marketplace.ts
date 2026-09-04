@@ -1,6 +1,6 @@
 import { apiGet, apiPost } from "./http";
 import { reaisParaWei, weiParaReais } from "./money";
-import { obterInvestidorSalvo } from "./session";
+import { exigirInvestidor, obterInvestidorSalvo } from "./session";
 import type { Listagem, StatusListagem } from "./types";
 
 type ListagemBackend = {
@@ -36,8 +36,7 @@ export async function listarListagens(): Promise<Listagem[]> {
 }
 
 export async function criarListagem(imovelId: string, cotas: number, precoPorCota: number): Promise<void> {
-  const investidor = obterInvestidorSalvo();
-  if (!investidor) throw new Error("nenhum investidor cadastrado nesta sessão");
+  const investidor = exigirInvestidor();
 
   await apiPost("/listagens", {
     investorId: investidor.id,
@@ -48,15 +47,11 @@ export async function criarListagem(imovelId: string, cotas: number, precoPorCot
 }
 
 export async function comprarListagem(id: string): Promise<void> {
-  const investidor = obterInvestidorSalvo();
-  if (!investidor) throw new Error("nenhum investidor cadastrado nesta sessão");
-
+  const investidor = exigirInvestidor();
   await apiPost(`/listagens/${id}/comprar`, { investorId: investidor.id });
 }
 
 export async function cancelarListagem(id: string): Promise<void> {
-  const investidor = obterInvestidorSalvo();
-  if (!investidor) throw new Error("nenhum investidor cadastrado nesta sessão");
-
+  const investidor = exigirInvestidor();
   await apiPost(`/listagens/${id}/cancelar`, { investorId: investidor.id });
 }

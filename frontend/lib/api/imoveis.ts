@@ -1,9 +1,10 @@
 import { apiGet, apiPost } from "./http";
 import { weiParaReais } from "./money";
-import { obterInvestidorSalvo } from "./session";
+import { exigirInvestidor } from "./session";
+import { ApiError } from "@/lib/errors";
 import type { Imovel, StatusImovel } from "./types";
 
-type ImovelBackend = {
+export type ImovelBackend = {
   id: string;
   nome: string;
   imagemUrl: string | null;
@@ -25,7 +26,7 @@ const STATUS_BACKEND_PARA_FRONTEND: Record<string, StatusImovel> = {
   ALUGADO: "alugado",
 };
 
-function converterImovel(imovel: ImovelBackend): Imovel {
+export function converterImovel(imovel: ImovelBackend): Imovel {
   return {
     id: imovel.id,
     nome: imovel.nome,
@@ -46,18 +47,20 @@ export async function listarImoveis(): Promise<Imovel[]> {
   return imoveis.map(converterImovel);
 }
 
+/** Retorna `null` apenas quando o imóvel de fato não existe (404) — qualquer
+ * outro erro (rede, 5xx) é propagado para o chamador tratar como falha, em
+ * vez de ser confundido com "imóvel não encontrado". */
 export async function obterImovel(id: string): Promise<Imovel | null> {
   try {
     const imovel = await apiGet<ImovelBackend>(`/imoveis/${id}`);
     return converterImovel(imovel);
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null;
+    throw error;
   }
 }
 
 export async function comprarCotas(imovelId: string, quantidade: number): Promise<void> {
-  const investidor = obterInvestidorSalvo();
-  if (!investidor) throw new Error("nenhum investidor cadastrado nesta sessão");
-
+  const investidor = exigirInvestidor();
   await apiPost(`/imoveis/${imovelId}/comprar`, { investorId: investidor.id, quantidade });
 }

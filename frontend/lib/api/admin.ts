@@ -1,50 +1,9 @@
 import { apiGetAdmin, apiPostAdmin } from "./http";
-import { reaisParaWei, weiParaReais } from "./money";
-import type { Imovel, Investidor, StatusImovel, StatusKyc } from "./types";
-
-type ImovelBackend = {
-  id: string;
-  nome: string;
-  imagemUrl: string | null;
-  valorTotal: string;
-  totalCotas: number;
-  cotasRestantes: number;
-  precoPorCota: string;
-  rendimentoEstimadoAnual: number;
-  status: string;
-  valorMinimoInvestimento: string;
-};
-
-const IMAGEM_FALLBACK =
-  "https://images.unsplash.com/photo-1560518883-ce09059eeffa?q=80&w=800&auto=format&fit=crop";
-
-const STATUS_IMOVEL_BACKEND_PARA_FRONTEND: Record<string, StatusImovel> = {
-  EM_CAPTACAO: "em_captacao",
-  VENDIDO: "vendido",
-  ALUGADO: "alugado",
-};
-
-const STATUS_KYC_BACKEND_PARA_FRONTEND: Record<string, StatusKyc> = {
-  PENDING: "pendente",
-  PROCESSING: "pendente",
-  APPROVED: "aprovado",
-  REJECTED: "reprovado",
-};
-
-function converterImovel(imovel: ImovelBackend): Imovel {
-  return {
-    id: imovel.id,
-    nome: imovel.nome,
-    imagemUrl: imovel.imagemUrl ?? IMAGEM_FALLBACK,
-    valorTotal: weiParaReais(imovel.valorTotal),
-    totalCotas: imovel.totalCotas,
-    cotasRestantes: imovel.cotasRestantes,
-    precoPorCota: weiParaReais(imovel.precoPorCota),
-    rendimentoEstimadoAnual: imovel.rendimentoEstimadoAnual,
-    status: STATUS_IMOVEL_BACKEND_PARA_FRONTEND[imovel.status] ?? "em_captacao",
-    valorMinimoInvestimento: weiParaReais(imovel.valorMinimoInvestimento),
-  };
-}
+import { reaisParaWei } from "./money";
+import { converterImovel } from "./imoveis";
+import { STATUS_KYC_BACKEND_PARA_FRONTEND } from "./kyc";
+import type { ImovelBackend } from "./imoveis";
+import type { Imovel, Investidor } from "./types";
 
 type InvestidorBackend = { id: string; nome: string; walletAddress: string; statusKyc: string };
 

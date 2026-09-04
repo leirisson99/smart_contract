@@ -1,22 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { PropertyCard } from "@/components/property/property-card";
 import { Alert } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import { listarImoveis } from "@/lib/api/imoveis";
-import type { Imovel } from "@/lib/api/types";
-import { traduzirErro } from "@/lib/errors";
+import { useAsyncData } from "@/lib/hooks/use-async-data";
 
 export default function ImoveisPage() {
-  const [imoveis, setImoveis] = useState<Imovel[] | null>(null);
-  const [erro, setErro] = useState<string | null>(null);
-
-  useEffect(() => {
-    listarImoveis()
-      .then(setImoveis)
-      .catch((error) => setErro(traduzirErro(error)));
-  }, []);
+  const { data: imoveis, erro } = useAsyncData(listarImoveis);
 
   return (
     <div>

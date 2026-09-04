@@ -7,49 +7,48 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert } from "@/components/ui/alert";
-import { TransactionalButton, type TransactionState } from "@/components/feedback/transactional-button";
+import { TransactionalButton } from "@/components/feedback/transactional-button";
+import { useTransacao } from "@/components/feedback/use-transacao";
 import { criarListagem } from "@/lib/api/marketplace";
-import { traduzirErro } from "@/lib/errors";
-import type { Holding } from "@/lib/api/types";
+import type { Holding, Listagem } from "@/lib/api/types";
 
 interface CreateListingDialogProps {
   holdings: Holding[];
+  listagens: Listagem[];
   onCriada: () => void;
 }
 
-function CreateListingDialog({ holdings, onCriada }: CreateListingDialogProps) {
+function CreateListingDialog({ holdings, listagens, onCriada }: CreateListingDialogProps) {
   const [open, setOpen] = useState(false);
-  const [imovelId, setImovelId] = useState(holdings[0]?.imovelId ?? "");
+  // `null` ate o investidor escolher explicitamente - o holding selecionado
+  // e sempre derivado na hora (com fallback pro primeiro), entao nunca fica
+  // referenciando um imovelId que nao existe mais em `holdings`.
+  const [imovelId, setImovelId] = useState<string | null>(null);
   const [cotas, setCotas] = useState(1);
   const [preco, setPreco] = useState(0);
-  const [state, setState] = useState<TransactionState>("idle");
-  const [erro, setErro] = useState<string | null>(null);
+  const { state, erro, executar } = useTransacao();
 
-  // `holdings` chega assíncrono (obterPortfolio); o valor inicial de
-  // `imovelId` captura o array vazio do primeiro render e nunca mais
-  // atualiza sozinho, deixando `imovelSelecionado` indefinido mesmo depois
-  // que os holdings chegam - por isso cai para o primeiro holding aqui, em
-  // vez de confiar cegamente no `imovelId` armazenado.
-  const imovelIdEfetivo = holdings.some((holding) => holding.imovelId === imovelId)
-    ? imovelId
-    : (holdings[0]?.imovelId ?? "");
-  const imovelSelecionado = holdings.find((item) => item.imovelId === imovelIdEfetivo);
+  const imovelSelecionado = holdings.find((holding) => holding.imovelId === imovelId) ?? holdings[0];
+  const imovelIdSelecionado = imovelSelecionado?.imovelId ?? "";
 
-  async function handleSubmit(event: FormEvent) {
+  // Cotas do imovel que o investidor ja colocou a venda em outras listagens
+  // ativas nao podem ser vendidas de novo - `Holding.cotas` reflete apenas o
+  // saldo on-chain, sem descontar o que ja esta reservado em uma listagem.
+  const cotasJaListadas = listagens
+    .filter((listagem) => listagem.criadaPeloUsuarioAtual && listagem.imovelId === imovelIdSelecionado)
+    .reduce((soma, listagem) => soma + listagem.cotas, 0);
+  const cotasDisponiveis = Math.max(0, (imovelSelecionado?.cotas ?? 0) - cotasJaListadas);
+
+  function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (!imovelSelecionado) return;
-    setState("processando");
-    setErro(null);
-    try {
-      await criarListagem(imovelSelecionado.imovelId, cotas, preco);
-      setState("sucesso");
-      onCriada();
-      setOpen(false);
-      setState("idle");
-    } catch (error) {
-      setState("erro");
-      setErro(traduzirErro(error));
-    }
+    if (!imovelSelecionado || cotas < 1 || cotas > cotasDisponiveis) return;
+    executar(
+      () => criarListagem(imovelSelecionado.imovelId, cotas, preco),
+      () => {
+        onCriada();
+        setOpen(false);
+      },
+    );
   }
 
   if (holdings.length === 0) return null;
@@ -77,7 +76,7 @@ function CreateListingDialog({ holdings, onCriada }: CreateListingDialogProps) {
               <select
                 id="imovel"
                 className="block w-full min-h-12 rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-md"
-                value={imovelIdEfetivo}
+                value={imovelIdSelecionado}
                 onChange={(event) => setImovelId(event.target.value)}
               >
                 {holdings.map((holding) => (
@@ -93,10 +92,15 @@ function CreateListingDialog({ holdings, onCriada }: CreateListingDialogProps) {
                 id="cotas"
                 type="number"
                 min={1}
-                max={imovelSelecionado?.cotas ?? 1}
+                max={cotasDisponiveis || 1}
+                step={1}
                 value={cotas}
-                onChange={(event) => setCotas(Number(event.target.value))}
+                onChange={(event) => setCotas(Math.floor(Number(event.target.value)))}
               />
+              <p className="mt-1 text-mono-label text-on-surface-variant">
+                {cotasDisponiveis} {cotasDisponiveis === 1 ? "cota disponível" : "cotas disponíveis"} para venda
+                {cotasJaListadas > 0 ? ` (${cotasJaListadas} já em outra listagem)` : ""}
+              </p>
             </div>
             <div>
               <Label htmlFor="preco">Preço por cota (R$)</Label>
@@ -108,7 +112,13 @@ function CreateListingDialog({ holdings, onCriada }: CreateListingDialogProps) {
                 onChange={(event) => setPreco(Number(event.target.value))}
               />
             </div>
-            <TransactionalButton state={state} idleLabel="Publicar listagem" type="submit" className="w-full" />
+            <TransactionalButton
+              state={state}
+              idleLabel="Publicar listagem"
+              type="submit"
+              className="w-full"
+              disabled={cotasDisponiveis === 0}
+            />
           </form>
         </Dialog.Content>
       </Dialog.Portal>

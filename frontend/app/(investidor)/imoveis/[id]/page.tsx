@@ -5,19 +5,25 @@ import Image from "next/image";
 import { notFound, useParams } from "next/navigation";
 import { PropertyPurchasePanel } from "@/components/property/property-purchase-panel";
 import { PropertyStatusChip } from "@/components/property/property-status-chip";
+import { Alert } from "@/components/ui/alert";
 import { Spinner } from "@/components/ui/spinner";
 import { obterImovel } from "@/lib/api/imoveis";
 import { formatCurrency, formatPercent } from "@/lib/format";
+import { traduzirErro } from "@/lib/errors";
 import type { Imovel } from "@/lib/api/types";
 
 export default function DetalhesImovelPage() {
   const params = useParams<{ id: string }>();
   const [imovel, setImovel] = useState<Imovel | null | undefined>(undefined);
+  const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
-    obterImovel(params.id).then(setImovel);
+    obterImovel(params.id)
+      .then(setImovel)
+      .catch((error) => setErro(traduzirErro(error)));
   }, [params.id]);
 
+  if (erro) return <Alert tone="error">{erro}</Alert>;
   if (imovel === undefined) return <Spinner className="size-6" />;
   if (imovel === null) notFound();
 

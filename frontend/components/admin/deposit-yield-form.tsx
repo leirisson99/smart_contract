@@ -5,29 +5,33 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert } from "@/components/ui/alert";
-import { TransactionalButton, type TransactionState } from "@/components/feedback/transactional-button";
+import { TransactionalButton } from "@/components/feedback/transactional-button";
+import { useTransacao } from "@/components/feedback/use-transacao";
 import { depositarRendimento } from "@/lib/api/admin";
-import { traduzirErro } from "@/lib/errors";
 import type { Imovel } from "@/lib/api/types";
 
 function DepositYieldForm({ imoveis }: { imoveis: Imovel[] }) {
   const [imovelId, setImovelId] = useState(imoveis[0]?.id ?? "");
   const [valor, setValor] = useState(0);
-  const [state, setState] = useState<TransactionState>("idle");
-  const [erro, setErro] = useState<string | null>(null);
+  const { state, erro, executar } = useTransacao();
 
-  async function handleSubmit(event: FormEvent) {
+  function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    setState("processando");
-    setErro(null);
-    try {
-      await depositarRendimento(imovelId, valor);
-      setState("sucesso");
-      setTimeout(() => setState("idle"), 1500);
-    } catch (error) {
-      setState("erro");
-      setErro(traduzirErro(error));
-    }
+    executar(() => depositarRendimento(imovelId, valor));
+  }
+
+  if (imoveis.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Depositar rendimento mensal</CardTitle>
+          <CardDescription>Distribui o aluguel do ciclo entre os investidores do imóvel, proporcionalmente às cotas.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-body-md text-on-surface-variant">Nenhum imóvel cadastrado ainda.</p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

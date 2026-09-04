@@ -19,6 +19,8 @@ const statusChipVariants = tv({
   },
 });
 
+export type StatusChipTone = NonNullable<VariantProps<typeof statusChipVariants>["tone"]>;
+
 interface StatusChipProps
   extends React.ComponentPropsWithoutRef<"span">,
     VariantProps<typeof statusChipVariants> {}

@@ -1,6 +1,6 @@
 import { apiGet, apiPost } from "./http";
 import { weiParaReais } from "./money";
-import { obterInvestidorSalvo } from "./session";
+import { exigirInvestidor, obterInvestidorSalvo } from "./session";
 import type { Portfolio } from "./types";
 
 type PortfolioBackend = {
@@ -47,8 +47,6 @@ export async function obterPortfolio(): Promise<Portfolio> {
 }
 
 export async function claimRendimentos(): Promise<void> {
-  const investidor = obterInvestidorSalvo();
-  if (!investidor) throw new Error("nenhum investidor cadastrado nesta sessão");
-
+  const investidor = exigirInvestidor();
   await apiPost(`/investors/${investidor.id}/portfolio/claim`);
 }

@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { TransactionalButton, type TransactionState } from "@/components/feedback/transactional-button";
+import { TransactionalButton } from "@/components/feedback/transactional-button";
+import { useTransacao } from "@/components/feedback/use-transacao";
 import { Alert } from "@/components/ui/alert";
 import { claimRendimentos } from "@/lib/api/portfolio";
-import { traduzirErro } from "@/lib/errors";
 import { formatCurrency } from "@/lib/format";
 
 interface PortfolioSummaryProps {
@@ -15,20 +14,10 @@ interface PortfolioSummaryProps {
 }
 
 function PortfolioSummary({ valorTotalInvestido, rendimentoPendenteClaim, onClaimSucesso }: PortfolioSummaryProps) {
-  const [state, setState] = useState<TransactionState>("idle");
-  const [erro, setErro] = useState<string | null>(null);
+  const { state, erro, executar } = useTransacao();
 
-  async function handleClaim() {
-    setState("processando");
-    setErro(null);
-    try {
-      await claimRendimentos();
-      setState("sucesso");
-      onClaimSucesso();
-    } catch (error) {
-      setState("erro");
-      setErro(traduzirErro(error));
-    }
+  function handleClaim() {
+    executar(() => claimRendimentos(), onClaimSucesso);
   }
 
   return (

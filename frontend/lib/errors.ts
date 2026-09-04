@@ -27,10 +27,12 @@ const MENSAGENS: Record<CodigoErro, string> = {
 
 export class ApiError extends Error {
   codigo: CodigoErro;
+  status?: number;
 
-  constructor(codigo: CodigoErro) {
+  constructor(codigo: CodigoErro, status?: number) {
     super(codigo);
     this.codigo = codigo;
+    this.status = status;
   }
 }
 

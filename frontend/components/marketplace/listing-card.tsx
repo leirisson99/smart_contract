@@ -1,30 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
-import { TransactionalButton, type TransactionState } from "@/components/feedback/transactional-button";
+import { TransactionalButton } from "@/components/feedback/transactional-button";
+import { useTransacao } from "@/components/feedback/use-transacao";
 import { comprarListagem, cancelarListagem } from "@/lib/api/marketplace";
-import { traduzirErro } from "@/lib/errors";
 import { formatCurrency } from "@/lib/format";
 import type { Listagem } from "@/lib/api/types";
 
 function ListingCard({ listagem, onAtualizado }: { listagem: Listagem; onAtualizado: () => void }) {
-  const [state, setState] = useState<TransactionState>("idle");
-  const [erro, setErro] = useState<string | null>(null);
-
-  async function executar(acao: () => Promise<void>) {
-    setState("processando");
-    setErro(null);
-    try {
-      await acao();
-      setState("sucesso");
-      onAtualizado();
-    } catch (error) {
-      setState("erro");
-      setErro(traduzirErro(error));
-    }
-  }
+  const { state, erro, executar } = useTransacao();
 
   return (
     <Card>
@@ -53,7 +38,7 @@ function ListingCard({ listagem, onAtualizado }: { listagem: Listagem; onAtualiz
             state={state}
             variant="outline"
             idleLabel="Cancelar listagem"
-            onClick={() => executar(() => cancelarListagem(listagem.id))}
+            onClick={() => executar(() => cancelarListagem(listagem.id), onAtualizado)}
             className="w-full"
           />
         ) : (
@@ -61,7 +46,7 @@ function ListingCard({ listagem, onAtualizado }: { listagem: Listagem; onAtualiz
             state={state}
             variant="secondary"
             idleLabel="Comprar"
-            onClick={() => executar(() => comprarListagem(listagem.id))}
+            onClick={() => executar(() => comprarListagem(listagem.id), onAtualizado)}
             className="w-full"
           />
         )}
