@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
@@ -28,16 +28,21 @@ function CreateListingDialog({ holdings, listagens, onCriada }: CreateListingDia
   const [preco, setPreco] = useState(0);
   const { state, erro, executar } = useTransacao();
 
-  const imovelSelecionado = holdings.find((holding) => holding.imovelId === imovelId) ?? holdings[0];
+  const imovelSelecionado = useMemo(
+    () => holdings.find((holding) => holding.imovelId === imovelId) ?? holdings[0],
+    [holdings, imovelId],
+  );
   const imovelIdSelecionado = imovelSelecionado?.imovelId ?? "";
 
   // Cotas do imovel que o investidor ja colocou a venda em outras listagens
   // ativas nao podem ser vendidas de novo - `Holding.cotas` reflete apenas o
   // saldo on-chain, sem descontar o que ja esta reservado em uma listagem.
-  const cotasJaListadas = listagens
-    .filter((listagem) => listagem.criadaPeloUsuarioAtual && listagem.imovelId === imovelIdSelecionado)
-    .reduce((soma, listagem) => soma + listagem.cotas, 0);
-  const cotasDisponiveis = Math.max(0, (imovelSelecionado?.cotas ?? 0) - cotasJaListadas);
+  const { cotasJaListadas, cotasDisponiveis } = useMemo(() => {
+    const jaListadas = listagens
+      .filter((listagem) => listagem.criadaPeloUsuarioAtual && listagem.imovelId === imovelIdSelecionado)
+      .reduce((soma, listagem) => soma + listagem.cotas, 0);
+    return { cotasJaListadas: jaListadas, cotasDisponiveis: Math.max(0, (imovelSelecionado?.cotas ?? 0) - jaListadas) };
+  }, [listagens, imovelIdSelecionado, imovelSelecionado]);
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();

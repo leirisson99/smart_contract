@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusChip } from "@/components/ui/status-chip";
 import { KYC_STATUS_TONE } from "@/components/kyc/kyc-status";
@@ -14,7 +14,10 @@ const LABEL: Record<StatusKyc, string> = {
 
 function InvestorsTable({ investidores }: { investidores: Investidor[] }) {
   const [filtro, setFiltro] = useState<StatusKyc | "todos">("todos");
-  const filtrados = filtro === "todos" ? investidores : investidores.filter((item) => item.statusKyc === filtro);
+  const filtrados = useMemo(
+    () => (filtro === "todos" ? investidores : investidores.filter((item) => item.statusKyc === filtro)),
+    [filtro, investidores],
+  );
 
   return (
     <Card>
