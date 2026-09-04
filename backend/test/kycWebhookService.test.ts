@@ -8,15 +8,18 @@ vi.mock("../src/services/trustedIssuerSigner.js", () => ({
 import { emitirClaimOnChain } from "../src/services/trustedIssuerSigner.js";
 import { processKycWebhookResult } from "../src/services/kycWebhookService.js";
 import { createCustodialWallet, encryptSecret } from "../src/services/walletCustody.js";
+import { gerarSegredoOtp } from "../src/services/hotp.js";
 
 async function createInvestorWithSubmission(providerReference: string) {
   const wallet = createCustodialWallet();
   const investor = await prisma.investor.create({
     data: {
       fullName: "Investidor Teste",
+      email: `${wallet.address.toLowerCase()}@teste.local`,
       cpfEncrypted: encryptSecret("12345678900"),
       walletAddress: wallet.address,
       walletKeyEnc: wallet.walletKeyEnc,
+      otpSecretEnc: encryptSecret(gerarSegredoOtp()),
     },
   });
   const submission = await prisma.kycSubmission.create({

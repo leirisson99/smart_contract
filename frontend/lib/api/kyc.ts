@@ -1,5 +1,4 @@
-import { apiGet, apiPost } from "./http";
-import { atualizarStatusKycSalvo, exigirInvestidor, obterInvestidorSalvo, salvarInvestidor } from "./session";
+import { apiGetInvestidor, apiPostInvestidor } from "./http";
 import type { Investidor, StatusKyc } from "./types";
 
 export interface DadosCadastro {
@@ -15,33 +14,25 @@ export const STATUS_KYC_BACKEND_PARA_FRONTEND: Record<string, StatusKyc> = {
   REJECTED: "reprovado",
 };
 
-/** RF-27: cadastro + submissão de KYC. Espelha `backend/src/routes/investors.ts` + `kyc.ts`. */
+/**
+ * RF-27: cadastro + submissão de KYC. Espelha `backend/src/routes/investors.ts` + `kyc.ts`.
+ * Autentica automaticamente (feature 006-autenticacao-investidor) — o cookie
+ * de sessão já vem no próprio 201 de `POST /investors`, sem precisar de um
+ * passo de login separado logo após o cadastro.
+ */
 export async function cadastrar(dados: DadosCadastro): Promise<Investidor> {
-  const { investorId } = await apiPost<{ investorId: string; walletAddress: string }>("/investors", {
+  const { investorId } = await apiPostInvestidor<{ investorId: string; walletAddress: string }>("/investors", {
     fullName: dados.nome,
+    email: dados.email,
     cpf: dados.cpf,
   });
 
-  const investidor: Investidor = { id: investorId, nome: dados.nome, email: dados.email, statusKyc: "pendente" };
-  salvarInvestidor(investidor);
+  await apiPostInvestidor("/kyc", {});
 
-  await apiPost(`/investors/${investorId}/kyc`, {});
-
-  return investidor;
+  return { id: investorId, nome: dados.nome, email: dados.email, statusKyc: "pendente" };
 }
 
 export async function obterStatusKyc(): Promise<StatusKyc> {
-  const investidor = obterInvestidorSalvo();
-  if (!investidor) return "pendente";
-
-  const kyc = await apiGet<{ status: string }>(`/investors/${investidor.id}/kyc`);
-  const status = STATUS_KYC_BACKEND_PARA_FRONTEND[kyc.status] ?? "pendente";
-  atualizarStatusKycSalvo(status);
-  return status;
-}
-
-export async function obterInvestidorAtual(): Promise<Investidor> {
-  const investidor = exigirInvestidor();
-  const status = await obterStatusKyc();
-  return { ...investidor, statusKyc: status };
+  const kyc = await apiGetInvestidor<{ status: string }>("/kyc");
+  return STATUS_KYC_BACKEND_PARA_FRONTEND[kyc.status] ?? "pendente";
 }

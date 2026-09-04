@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db/client.js";
+import { exigirInvestidor } from "../middleware/investorAuth.js";
 import { decryptSecret } from "../services/walletCustody.js";
 import { isVerifiedOnChain } from "../services/trustedIssuerSigner.js";
 import { balanceOfOnChain, comprarCotasOnChain, lerImovelOnChain } from "../services/propertyChain.js";
@@ -8,7 +9,6 @@ import { garantirGasParaCarteira, garantirSaldoMoedaTeste } from "../services/ga
 import { mensagemErroZod } from "../validation.js";
 
 const comprarImovelSchema = z.object({
-  investorId: z.string().min(1, "investorId e obrigatorio"),
   quantidade: z.number().int("quantidade deve ser um inteiro positivo").positive("quantidade deve ser um inteiro positivo"),
 });
 
@@ -43,7 +43,7 @@ export async function imoveisRoutes(app: FastifyInstance) {
     return serializeImovel(property);
   });
 
-  app.post("/imoveis/:id/comprar", async (request, reply) => {
+  app.post("/imoveis/:id/comprar", { preHandler: exigirInvestidor }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const parsed = comprarImovelSchema.safeParse(request.body);
     if (!parsed.success) {
@@ -56,7 +56,7 @@ export async function imoveisRoutes(app: FastifyInstance) {
       return reply.code(404).send({ error: "imovel nao encontrado" });
     }
 
-    const investor = await prisma.investor.findUnique({ where: { id: body.investorId } });
+    const investor = await prisma.investor.findUnique({ where: { id: request.investorId } });
     if (!investor) {
       return reply.code(404).send({ error: "investidor nao encontrado" });
     }

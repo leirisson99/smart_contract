@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "../src/db/client.js";
 import { config } from "../src/config.js";
 import { createCustodialWallet, encryptSecret } from "../src/services/walletCustody.js";
+import { gerarSegredoOtp } from "../src/services/hotp.js";
 
 vi.mock("../src/services/adminChain.js", () => ({
   criarImovelOnChain: vi.fn(async () => ({
@@ -36,9 +37,11 @@ async function createInvestor(overrides: Partial<{ fullName: string }> = {}) {
   return prisma.investor.create({
     data: {
       fullName: overrides.fullName ?? "Investidor Teste",
+      email: `${wallet.address.toLowerCase()}@teste.local`,
       cpfEncrypted: encryptSecret("12345678900"),
       walletAddress: wallet.address,
       walletKeyEnc: wallet.walletKeyEnc,
+      otpSecretEnc: encryptSecret(gerarSegredoOtp()),
     },
   });
 }

@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { RiBuilding2Line, RiPieChartLine, RiExchangeLine, RiUserAddLine } from "@remixicon/react";
 import { cx } from "@/lib/utils";
+import { logout, obterSessaoAtual } from "@/lib/api/auth";
+import { useAsyncData } from "@/lib/hooks/use-async-data";
 
 const links = [
   { href: "/imoveis", label: "Imóveis", icon: RiBuilding2Line },
@@ -11,6 +13,33 @@ const links = [
   { href: "/mercado-secundario", label: "Mercado", icon: RiExchangeLine },
   { href: "/cadastro", label: "Cadastro", icon: RiUserAddLine },
 ];
+
+/** Entrar/Sair (feature 006-autenticacao-investidor) — só ponto de entrada visível pro login, já que não há tela de login separada de proposito na navegação. */
+function AuthStatus() {
+  const router = useRouter();
+  const { data: sessao, recarregar } = useAsyncData(obterSessaoAtual);
+
+  if (sessao === null) {
+    return (
+      <Link href="/entrar" className="text-label-sm font-medium opacity-70 hover:opacity-100">
+        Entrar
+      </Link>
+    );
+  }
+  if (!sessao) return null;
+
+  async function handleSair() {
+    await logout();
+    recarregar();
+    router.push("/imoveis");
+  }
+
+  return (
+    <button type="button" onClick={handleSair} className="text-label-sm font-medium opacity-70 hover:opacity-100">
+      Sair
+    </button>
+  );
+}
 
 function NavInvestidorHeader() {
   const pathname = usePathname();
@@ -20,7 +49,7 @@ function NavInvestidorHeader() {
         <Link href="/imoveis" className="text-title-md font-bold tracking-tight">
           Patrimônio Digital
         </Link>
-        <nav className="hidden gap-6 sm:flex" aria-label="Navegação principal">
+        <nav className="hidden items-center gap-6 sm:flex" aria-label="Navegação principal">
           {links.map(({ href, label, icon: Icon }) => {
             const active = pathname?.startsWith(href);
             return (
@@ -37,6 +66,7 @@ function NavInvestidorHeader() {
               </Link>
             );
           })}
+          <AuthStatus />
         </nav>
       </div>
     </header>

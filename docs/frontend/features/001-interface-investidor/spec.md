@@ -25,6 +25,7 @@ Entregar a experiência visual e interativa que torna as features on-chain (`../
 | RF-30 | A interface deve fornecer um painel para o gestor: formulário de criação de imóvel, formulário de depósito de rendimento mensal, e lista de investidores com status de KYC. |
 | RF-31 | A interface deve exibir o mercado secundário: listagens ativas de cotas à venda, permitir ao investidor criar uma listagem de venda e comprar uma listagem existente. |
 | RF-32 | A interface deve traduzir falhas retornadas pelo backend/contrato (ex.: "sem KYC", "cotas insuficientes", "listagem já vendida") em mensagens compreensíveis para um usuário não-técnico, e exibir estados de carregamento/confirmação durante o processamento de uma transação. |
+| RF-40 | A interface deve oferecer uma tela de login sem senha (e-mail → código de acesso, [`../../../backend/features/006-autenticacao-investidor`](../../../backend/features/006-autenticacao-investidor/spec.md)) para o investidor que já tem cadastro, e redirecionar para essa tela ao tentar acessar uma área que exige sessão (ex. portfólio) sem estar autenticado. O cadastro (RF-27) continua autenticando automaticamente — este RF cobre só o retorno de quem já tem conta. |
 
 ## Requisitos não funcionais
 - **RNF-12 (simplicidade para não-técnicos)**: nenhuma tela expõe termos on-chain (endereço de contrato, hash de transação, gas) na jornada principal do investidor — esses detalhes ficam disponíveis apenas em uma seção avançada/opcional.
@@ -42,6 +43,8 @@ Entregar a experiência visual e interativa que torna as features on-chain (`../
 | Portfólio atualizado após claim | Investidor tem rendimento pendente | Job de claim automático do backend processa o pagamento | Na próxima visita à tela de portfólio, o valor aparece como recebido, com data do ciclo |
 | Painel do gestor — novo imóvel | Gestor autenticado acessa o painel | Preenche nome, valor total e número de cotas, confirma | Interface exibe confirmação e o novo imóvel passa a aparecer na listagem para investidores |
 | Mercado secundário | Investidor possui cotas de um imóvel | Cria uma listagem de venda com preço fixo | Listagem aparece para outros investidores verificados; investidor pode cancelar a qualquer momento antes da venda |
+| Login sem sessão ativa | Investidor com cadastro existente, sem sessão válida (limpou dados do navegador, trocou de dispositivo) | Acessa a tela de login, informa e-mail e o código recebido | Interface autentica e o investidor volta a acessar seu portfólio/ações — sem precisar se cadastrar de novo |
+| Acesso negado sem sessão | Visitante sem sessão válida | Tenta acessar diretamente uma área que exige sessão (ex. `/portfolio`) | Interface redireciona para a tela de login, preservando o destino original para depois de autenticar |
 
 ## Fora de escopo desta feature
 - Design visual definitivo / wireframes de alta fidelidade (processo de produto separado; esta spec define comportamento, não layout).

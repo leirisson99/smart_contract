@@ -41,3 +41,4 @@ Payloads, formato de erro e o vocabulário completo de códigos ficam em [`../..
 - Criação de carteira custodial e verificação de KYC — cobertas por [001](../001-onboarding-e-custodia/spec.md).
 - Leitura de portfólio após a compra — coberta por [003-portfolio-e-rendimentos](../003-portfolio-e-rendimentos/spec.md).
 - Telas de compra — cobertas por [`../../../frontend/features/001-interface-investidor`](../../../frontend/features/001-interface-investidor/spec.md).
+- Autenticação/sessão do investidor — coberta por [006-autenticacao-investidor](../006-autenticacao-investidor/spec.md); `POST /imoveis/:id/comprar` deriva o investidor da sessão (`preHandler exigirInvestidor`), não mais de `investorId` no payload.

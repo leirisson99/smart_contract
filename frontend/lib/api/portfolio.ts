@@ -1,6 +1,6 @@
-import { apiGet, apiPost } from "./http";
+import { apiGetInvestidor, apiPostInvestidor } from "./http";
 import { weiParaReais } from "./money";
-import { exigirInvestidor, obterInvestidorSalvo } from "./session";
+import { ApiError } from "@/lib/errors";
 import type { Portfolio } from "./types";
 
 type PortfolioBackend = {
@@ -36,17 +36,24 @@ function converterPortfolio(portfolio: PortfolioBackend): Portfolio {
   };
 }
 
+const PORTFOLIO_VAZIO: Portfolio = {
+  holdings: [],
+  valorTotalInvestido: 0,
+  rendimentosRecebidos: [],
+  rendimentoPendenteClaim: 0,
+};
+
 /** RF-29: leitura de portfólio + claim de rendimentos. Espelha `backend/src/routes/portfolio.ts`. */
 export async function obterPortfolio(): Promise<Portfolio> {
-  const investidor = obterInvestidorSalvo();
-  if (!investidor) {
-    return { holdings: [], valorTotalInvestido: 0, rendimentosRecebidos: [], rendimentoPendenteClaim: 0 };
+  try {
+    const portfolio = await apiGetInvestidor<PortfolioBackend>("/portfolio");
+    return converterPortfolio(portfolio);
+  } catch (error) {
+    if (error instanceof ApiError && error.codigo === "SESSAO_INVALIDA") return PORTFOLIO_VAZIO;
+    throw error;
   }
-  const portfolio = await apiGet<PortfolioBackend>(`/investors/${investidor.id}/portfolio`);
-  return converterPortfolio(portfolio);
 }
 
 export async function claimRendimentos(): Promise<void> {
-  const investidor = exigirInvestidor();
-  await apiPost(`/investors/${investidor.id}/portfolio/claim`);
+  await apiPostInvestidor("/portfolio/claim");
 }

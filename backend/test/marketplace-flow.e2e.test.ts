@@ -53,20 +53,21 @@ describe.skipIf(!shouldRun)("fluxo de mercado secundario end-to-end contra Anvil
     await prisma.investor.deleteMany();
   });
 
-  async function criarInvestidorAprovado(fullName: string, cpf: string) {
-    const signup = await app.inject({ method: "POST", url: "/investors", payload: { fullName, cpf } });
+  async function criarInvestidorAprovado(fullName: string, email: string, cpf: string) {
+    const signup = await app.inject({ method: "POST", url: "/investors", payload: { fullName, email, cpf } });
     const { investorId, walletAddress } = signup.json() as { investorId: string; walletAddress: `0x${string}` };
+    const cookies = { sid: signup.cookies.find((c) => c.name === "sid")?.value as string };
 
-    await app.inject({ method: "POST", url: `/investors/${investorId}/kyc`, payload: { forceResult: "APPROVED" } });
+    await app.inject({ method: "POST", url: "/kyc", cookies, payload: { forceResult: "APPROVED" } });
     await vi.waitFor(
       async () => {
-        const status = await app.inject({ method: "GET", url: `/investors/${investorId}/kyc` });
+        const status = await app.inject({ method: "GET", url: "/kyc", cookies });
         expect(status.json().status).toBe("APPROVED");
       },
       { timeout: 10000 },
     );
 
-    return { investorId, walletAddress };
+    return { investorId, walletAddress, cookies };
   }
 
   /** Cria o imovel de teste e um vendedor com `cotasIniciais` compradas na primaria, para ter o que listar depois. */
@@ -81,12 +82,13 @@ describe.skipIf(!shouldRun)("fluxo de mercado secundario end-to-end contra Anvil
         valorMinimoInvestimento: "1",
       },
     });
-    const vendedor = await criarInvestidorAprovado("Vendedor E2E Marketplace", "11122233344");
+    const vendedor = await criarInvestidorAprovado("Vendedor E2E Marketplace", "vendedor-e2e-marketplace@teste.local", "11122233344");
 
     const compraPrimaria = await app.inject({
       method: "POST",
       url: `/imoveis/${property.id}/comprar`,
-      payload: { investorId: vendedor.investorId, quantidade: cotasIniciais },
+      cookies: vendedor.cookies,
+      payload: { quantidade: cotasIniciais },
     });
     expect(compraPrimaria.statusCode).toBe(200);
 
@@ -112,8 +114,8 @@ describe.skipIf(!shouldRun)("fluxo de mercado secundario end-to-end contra Anvil
     const listagem = await app.inject({
       method: "POST",
       url: "/listagens",
+      cookies: vendedor.cookies,
       payload: {
-        investorId: vendedor.investorId,
         imovelId: property.id,
         cotas: 1,
         precoPorCota: imovel.precoPorCota.toString(),
@@ -122,12 +124,12 @@ describe.skipIf(!shouldRun)("fluxo de mercado secundario end-to-end contra Anvil
     expect(listagem.statusCode).toBe(201);
     const idListagem = listagem.json().id as string;
 
-    const comprador = await criarInvestidorAprovado("Comprador E2E Marketplace", "55566677788");
+    const comprador = await criarInvestidorAprovado("Comprador E2E Marketplace", "comprador-e2e-marketplace@teste.local", "55566677788");
 
     const compra = await app.inject({
       method: "POST",
       url: `/listagens/${idListagem}/comprar`,
-      payload: { investorId: comprador.investorId },
+      cookies: comprador.cookies,
     });
     expect(compra.statusCode).toBe(200);
     expect(compra.json().txHash).toBeTruthy();
@@ -137,8 +139,8 @@ describe.skipIf(!shouldRun)("fluxo de mercado secundario end-to-end contra Anvil
     expect(await saldoOnChain(comprador.walletAddress)).toBe(1n);
 
     const [portfolioVendedor, portfolioComprador] = await Promise.all([
-      app.inject({ method: "GET", url: `/investors/${vendedor.investorId}/portfolio` }),
-      app.inject({ method: "GET", url: `/investors/${comprador.investorId}/portfolio` }),
+      app.inject({ method: "GET", url: "/portfolio", cookies: vendedor.cookies }),
+      app.inject({ method: "GET", url: "/portfolio", cookies: comprador.cookies }),
     ]);
     // O holding do vendedor continua aparecendo (ledger `Investment` da
     // compra primaria nunca e apagado), so que com `cotas` refletindo o
@@ -155,8 +157,8 @@ describe.skipIf(!shouldRun)("fluxo de mercado secundario end-to-end contra Anvil
     const listagem = await app.inject({
       method: "POST",
       url: "/listagens",
+      cookies: vendedor.cookies,
       payload: {
-        investorId: vendedor.investorId,
         imovelId: property.id,
         cotas: 1,
         precoPorCota: imovel.precoPorCota.toString(),
@@ -172,7 +174,7 @@ describe.skipIf(!shouldRun)("fluxo de mercado secundario end-to-end contra Anvil
     const cancelamento = await app.inject({
       method: "POST",
       url: `/listagens/${idListagem}/cancelar`,
-      payload: { investorId: vendedor.investorId },
+      cookies: vendedor.cookies,
     });
     expect(cancelamento.statusCode).toBe(200);
     expect(cancelamento.json().txHash).toBeTruthy();

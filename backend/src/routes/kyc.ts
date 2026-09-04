@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db/client.js";
+import { exigirInvestidor } from "../middleware/investorAuth.js";
 import { MockKycProvider } from "../services/kycProvider/mockProvider.js";
 import { processKycWebhookResult } from "../services/kycWebhookService.js";
 import { decryptSecret } from "../services/walletCustody.js";
@@ -13,8 +14,8 @@ const forcarKycSchema = z.object({
 });
 
 export async function kycRoutes(app: FastifyInstance) {
-  app.post("/investors/:id/kyc", async (request, reply) => {
-    const { id } = request.params as { id: string };
+  app.post("/kyc", { preHandler: exigirInvestidor }, async (request, reply) => {
+    const id = request.investorId as string;
     const parsed = forcarKycSchema.safeParse(request.body ?? {});
     if (!parsed.success) {
       return reply.code(400).send({ error: mensagemErroZod(parsed.error) });

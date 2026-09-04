@@ -41,3 +41,4 @@ Payloads, formato de erro (incluindo `LISTAGEM_JA_VENDIDA`, `LISTAGEM_NAO_ENCONT
 - Definição de preço, taxa de transação e regras de escrow — definidas on-chain em [`../../../on-chain/features/004-mercado-secundario`](../../../on-chain/features/004-mercado-secundario/spec.md).
 - Criação de carteira custodial e verificação de KYC — cobertas por [001](../001-onboarding-e-custodia/spec.md).
 - Telas de mercado secundário — cobertas por [`../../../frontend/features/001-interface-investidor`](../../../frontend/features/001-interface-investidor/spec.md).
+- Autenticação/sessão do investidor — coberta por [006-autenticacao-investidor](../006-autenticacao-investidor/spec.md); `POST /listagens`/`comprar`/`cancelar` derivam o investidor da sessão, e `GET /listagens?investorId=` foi substituído por `GET /listagens` (pública) + `GET /listagens/minhas` (autenticada).

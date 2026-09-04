@@ -24,15 +24,17 @@ describe.skipIf(!shouldRun)("fluxo KYC end-to-end contra Anvil local", () => {
     const signup = await app.inject({
       method: "POST",
       url: "/investors",
-      payload: { fullName: "Investidor E2E", cpf: "12312312312" },
+      payload: { fullName: "Investidor E2E", email: "investidor-e2e@teste.local", cpf: "12312312312" },
     });
-    const { investorId, walletAddress } = signup.json();
+    const { walletAddress } = signup.json();
+    const sid = signup.cookies.find((c) => c.name === "sid")?.value;
 
     expect(await isVerifiedOnChain(walletAddress)).toBe(false);
 
     await app.inject({
       method: "POST",
-      url: `/investors/${investorId}/kyc`,
+      url: "/kyc",
+      cookies: { sid: sid as string },
       payload: { forceResult: "APPROVED" },
     });
 

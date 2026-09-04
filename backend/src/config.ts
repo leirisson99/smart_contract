@@ -22,4 +22,12 @@ export const config = {
   gestorPrivateKey: required("GESTOR_PRIVATE_KEY") as `0x${string}`,
   adminApiKey: required("ADMIN_API_KEY"),
   kycWebhookSecret: required("KYC_WEBHOOK_SECRET"),
+  // SMTP e opcional de proposito (feature 006): sem essas vars, mailer.ts cai
+  // num fallback que loga o codigo OTP em vez de enviar e-mail de verdade,
+  // para nao bloquear dev/test local (mesmo espirito do MockKycProvider).
+  smtpHost: process.env.SMTP_HOST,
+  smtpPort: Number(process.env.SMTP_PORT ?? 587),
+  smtpUser: process.env.SMTP_USER,
+  smtpPass: process.env.SMTP_PASS,
+  smtpFrom: process.env.SMTP_FROM ?? "no-reply@investx.local",
 };

@@ -3,9 +3,9 @@ export type StatusKyc = "pendente" | "aprovado" | "reprovado";
 export interface Investidor {
   id: string;
   nome: string;
-  /** Nao coletado por `POST /investors` (001) - so existe para o investidor da sessao atual, digitado no cadastro; nunca vem do backend (ver `GET /admin/investidores`, 005). */
+  /** Coletado no cadastro e usado como login (feature 006-autenticacao-investidor, HOTP por e-mail). */
   email?: string;
-  /** So preenchido por `GET /admin/investidores` (005) - o investidor da sessao atual nao guarda a propria carteira no frontend. */
+  /** So preenchido por `GET /auth/me` (006) e `GET /admin/investidores` (005). */
   walletAddress?: string;
   statusKyc: StatusKyc;
 }

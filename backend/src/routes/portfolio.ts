@@ -1,11 +1,12 @@
 import type { FastifyInstance } from "fastify";
 import { prisma } from "../db/client.js";
+import { exigirInvestidor } from "../middleware/investorAuth.js";
 import { balanceOfOnChain, lerImovelOnChain } from "../services/propertyChain.js";
 import { claimPendingForInvestor, pendingCyclesFor } from "../services/yieldClaimJob.js";
 
 export async function portfolioRoutes(app: FastifyInstance) {
-  app.get("/investors/:id/portfolio", async (request, reply) => {
-    const { id } = request.params as { id: string };
+  app.get("/portfolio", { preHandler: exigirInvestidor }, async (request, reply) => {
+    const id = request.investorId as string;
     const investor = await prisma.investor.findUnique({ where: { id } });
     if (!investor) {
       return reply.code(404).send({ error: "investidor nao encontrado" });
@@ -73,8 +74,8 @@ export async function portfolioRoutes(app: FastifyInstance) {
     });
   });
 
-  app.post("/investors/:id/portfolio/claim", async (request, reply) => {
-    const { id } = request.params as { id: string };
+  app.post("/portfolio/claim", { preHandler: exigirInvestidor }, async (request, reply) => {
+    const id = request.investorId as string;
     const investor = await prisma.investor.findUnique({ where: { id } });
     if (!investor) {
       return reply.code(404).send({ error: "investidor nao encontrado" });

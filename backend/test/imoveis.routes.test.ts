@@ -1,6 +1,8 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "../src/db/client.js";
 import { createCustodialWallet, encryptSecret } from "../src/services/walletCustody.js";
+import { gerarSegredoOtp } from "../src/services/hotp.js";
+import { criarSessao } from "../src/services/investorSession.js";
 
 vi.mock("../src/services/trustedIssuerSigner.js", () => ({
   isVerifiedOnChain: vi.fn(async () => true),
@@ -34,11 +36,19 @@ async function createInvestor() {
   return prisma.investor.create({
     data: {
       fullName: "Investidor Teste",
+      email: `${wallet.address.toLowerCase()}@teste.local`,
       cpfEncrypted: encryptSecret("12345678900"),
       walletAddress: wallet.address,
       walletKeyEnc: wallet.walletKeyEnc,
+      otpSecretEnc: encryptSecret(gerarSegredoOtp()),
     },
   });
+}
+
+/** Simula login (feature 006): mint direto de uma sessao, sem passar pelo HTTP de /auth/*. */
+async function cookieDoInvestidor(investorId: string): Promise<{ sid: string }> {
+  const sessao = await criarSessao(investorId);
+  return { sid: sessao.token };
 }
 
 async function createProperty(overrides: Partial<{ valorMinimoInvestimento: string }> = {}) {
@@ -101,7 +111,8 @@ describe("rotas de imoveis (feature 002)", () => {
     const res = await app.inject({
       method: "POST",
       url: `/imoveis/${property.id}/comprar`,
-      payload: { investorId: investor.id, quantidade: 2 },
+      cookies: await cookieDoInvestidor(investor.id),
+      payload: { quantidade: 2 },
     });
 
     expect(res.statusCode).toBe(200);
@@ -127,7 +138,8 @@ describe("rotas de imoveis (feature 002)", () => {
     const res = await app.inject({
       method: "POST",
       url: `/imoveis/${property.id}/comprar`,
-      payload: { investorId: investor.id, quantidade: 1 },
+      cookies: await cookieDoInvestidor(investor.id),
+      payload: { quantidade: 1 },
     });
 
     expect(res.statusCode).toBe(403);
@@ -142,7 +154,8 @@ describe("rotas de imoveis (feature 002)", () => {
     const res = await app.inject({
       method: "POST",
       url: `/imoveis/${property.id}/comprar`,
-      payload: { investorId: investor.id, quantidade: 1_000 },
+      cookies: await cookieDoInvestidor(investor.id),
+      payload: { quantidade: 1_000 },
     });
 
     expect(res.statusCode).toBe(400);
@@ -157,7 +170,8 @@ describe("rotas de imoveis (feature 002)", () => {
     const res = await app.inject({
       method: "POST",
       url: `/imoveis/${property.id}/comprar`,
-      payload: { investorId: investor.id, quantidade: 1 },
+      cookies: await cookieDoInvestidor(investor.id),
+      payload: { quantidade: 1 },
     });
 
     expect(res.statusCode).toBe(400);

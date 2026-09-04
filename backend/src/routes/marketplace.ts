@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { prisma } from "../db/client.js";
+import { exigirInvestidor } from "../middleware/investorAuth.js";
 import { decryptSecret } from "../services/walletCustody.js";
 import { isVerifiedOnChain } from "../services/trustedIssuerSigner.js";
 import { balanceOfOnChain, lerImovelOnChain } from "../services/propertyChain.js";
@@ -19,14 +20,9 @@ import { mensagemErroZod } from "../validation.js";
 const ENDERECO_ZERO = "0x0000000000000000000000000000000000000000";
 
 const criarListagemSchema = z.object({
-  investorId: z.string().min(1, "investorId e obrigatorio"),
   imovelId: z.string().min(1, "imovelId e obrigatorio"),
   cotas: z.number().int("cotas deve ser um inteiro positivo").positive("cotas deve ser um inteiro positivo"),
   precoPorCota: z.string().min(1, "precoPorCota e obrigatorio"),
-});
-
-const investorIdSchema = z.object({
-  investorId: z.string().min(1, "investorId e obrigatorio"),
 });
 
 /** Compara enderecos ignorando caixa - o RPC nao garante checksum EIP-55 no retorno de `readContract`. */
@@ -58,34 +54,39 @@ async function serializeListagem(
   };
 }
 
-export async function marketplaceRoutes(app: FastifyInstance) {
-  app.get("/listagens", async (request) => {
-    const { investorId } = request.query as { investorId?: string };
-    const investidorAtual = investorId ? await prisma.investor.findUnique({ where: { id: investorId } }) : null;
+async function listarTodasListagens(investidorAtualWallet: string | undefined) {
+  const properties = await prisma.property.findMany();
+  const listagensPorImovel = await Promise.all(
+    properties.map(async (property) => {
+      const ids = await listagensAtivasPorTokenOnChain(property.propertyTokenAddress as `0x${string}`);
+      return Promise.all(
+        ids.map(async (id) => {
+          const listagem = await lerListagemOnChain(id);
+          return serializeListagem(id, listagem, property, investidorAtualWallet);
+        }),
+      );
+    }),
+  );
+  return listagensPorImovel.flat();
+}
 
-    const properties = await prisma.property.findMany();
-    const listagensPorImovel = await Promise.all(
-      properties.map(async (property) => {
-        const ids = await listagensAtivasPorTokenOnChain(property.propertyTokenAddress as `0x${string}`);
-        return Promise.all(
-          ids.map(async (id) => {
-            const listagem = await lerListagemOnChain(id);
-            return serializeListagem(id, listagem, property, investidorAtual?.walletAddress);
-          }),
-        );
-      }),
-    );
-    return listagensPorImovel.flat();
+export async function marketplaceRoutes(app: FastifyInstance) {
+  app.get("/listagens", async () => listarTodasListagens(undefined));
+
+  app.get("/listagens/minhas", { preHandler: exigirInvestidor }, async (request) => {
+    const investidorAtual = await prisma.investor.findUnique({ where: { id: request.investorId } });
+    const todas = await listarTodasListagens(investidorAtual?.walletAddress);
+    return todas.filter((listagem) => listagem.criadaPeloUsuarioAtual);
   });
 
-  app.post("/listagens", async (request, reply) => {
+  app.post("/listagens", { preHandler: exigirInvestidor }, async (request, reply) => {
     const parsed = criarListagemSchema.safeParse(request.body);
     if (!parsed.success) {
       return reply.code(400).send({ error: mensagemErroZod(parsed.error) });
     }
     const body = parsed.data;
 
-    const investor = await prisma.investor.findUnique({ where: { id: body.investorId } });
+    const investor = await prisma.investor.findUnique({ where: { id: request.investorId } });
     if (!investor) {
       return reply.code(404).send({ error: "investidor nao encontrado" });
     }
@@ -132,15 +133,10 @@ export async function marketplaceRoutes(app: FastifyInstance) {
     });
   });
 
-  app.post("/listagens/:id/comprar", async (request, reply) => {
+  app.post("/listagens/:id/comprar", { preHandler: exigirInvestidor }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const parsed = investorIdSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ error: mensagemErroZod(parsed.error) });
-    }
-    const body = parsed.data;
 
-    const investor = await prisma.investor.findUnique({ where: { id: body.investorId } });
+    const investor = await prisma.investor.findUnique({ where: { id: request.investorId } });
     if (!investor) {
       return reply.code(404).send({ error: "investidor nao encontrado" });
     }
@@ -219,15 +215,10 @@ export async function marketplaceRoutes(app: FastifyInstance) {
     }
   });
 
-  app.post("/listagens/:id/cancelar", async (request, reply) => {
+  app.post("/listagens/:id/cancelar", { preHandler: exigirInvestidor }, async (request, reply) => {
     const { id } = request.params as { id: string };
-    const parsed = investorIdSchema.safeParse(request.body);
-    if (!parsed.success) {
-      return reply.code(400).send({ error: mensagemErroZod(parsed.error) });
-    }
-    const body = parsed.data;
 
-    const investor = await prisma.investor.findUnique({ where: { id: body.investorId } });
+    const investor = await prisma.investor.findUnique({ where: { id: request.investorId } });
     if (!investor) {
       return reply.code(404).send({ error: "investidor nao encontrado" });
     }

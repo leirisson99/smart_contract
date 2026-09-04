@@ -1,6 +1,8 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "../src/db/client.js";
 import { createCustodialWallet, encryptSecret } from "../src/services/walletCustody.js";
+import { gerarSegredoOtp } from "../src/services/hotp.js";
+import { criarSessao } from "../src/services/investorSession.js";
 
 vi.mock("../src/services/trustedIssuerSigner.js", () => ({
   isVerifiedOnChain: vi.fn(async () => true),
@@ -58,12 +60,20 @@ async function createInvestor(overrides: Partial<{ fullName: string }> = {}) {
   const investor = await prisma.investor.create({
     data: {
       fullName: overrides.fullName ?? "Investidor Teste",
+      email: `${wallet.address.toLowerCase()}@teste.local`,
       cpfEncrypted: encryptSecret("12345678900"),
       walletAddress: wallet.address,
       walletKeyEnc: wallet.walletKeyEnc,
+      otpSecretEnc: encryptSecret(gerarSegredoOtp()),
     },
   });
   return investor;
+}
+
+/** Simula login (feature 006): mint direto de uma sessao, sem passar pelo HTTP de /auth/*. */
+async function cookieDoInvestidor(investorId: string): Promise<{ sid: string }> {
+  const sessao = await criarSessao(investorId);
+  return { sid: sessao.token };
 }
 
 async function createProperty() {
@@ -132,7 +142,7 @@ describe("rotas de mercado secundario (feature 004)", () => {
     expect(listagem.criadaPeloUsuarioAtual).toBe(false);
   });
 
-  it("GET /listagens?investorId marca criadaPeloUsuarioAtual quando o vendedor e o investidor atual", async () => {
+  it("GET /listagens/minhas retorna so as listagens do investidor autenticado (via sessao, nao query param)", async () => {
     const property = await createProperty();
     const vendedor = await createInvestor();
 
@@ -145,9 +155,20 @@ describe("rotas de mercado secundario (feature 004)", () => {
       ativa: true,
     });
 
-    const res = await app.inject({ method: "GET", url: `/listagens?investorId=${vendedor.id}` });
+    const res = await app.inject({
+      method: "GET",
+      url: "/listagens/minhas",
+      cookies: await cookieDoInvestidor(vendedor.id),
+    });
+    expect(res.statusCode).toBe(200);
     const [listagem] = res.json();
     expect(listagem.criadaPeloUsuarioAtual).toBe(true);
+  });
+
+  it("GET /listagens/minhas rejeita com SESSAO_INVALIDA sem cookie de sessao", async () => {
+    const res = await app.inject({ method: "GET", url: "/listagens/minhas" });
+    expect(res.statusCode).toBe(401);
+    expect(res.json().codigo).toBe("SESSAO_INVALIDA");
   });
 
   it("POST /listagens assina Marketplace.listar e retorna a listagem criada", async () => {
@@ -157,7 +178,8 @@ describe("rotas de mercado secundario (feature 004)", () => {
     const res = await app.inject({
       method: "POST",
       url: "/listagens",
-      payload: { investorId: investor.id, imovelId: property.id, cotas: 3, precoPorCota: "500" },
+      cookies: await cookieDoInvestidor(investor.id),
+      payload: { imovelId: property.id, cotas: 3, precoPorCota: "500" },
     });
 
     expect(res.statusCode).toBe(201);
@@ -177,7 +199,8 @@ describe("rotas de mercado secundario (feature 004)", () => {
     const res = await app.inject({
       method: "POST",
       url: "/listagens",
-      payload: { investorId: investor.id, imovelId: property.id, cotas: 3, precoPorCota: "500" },
+      cookies: await cookieDoInvestidor(investor.id),
+      payload: { imovelId: property.id, cotas: 3, precoPorCota: "500" },
     });
 
     expect(res.statusCode).toBe(400);
@@ -201,7 +224,7 @@ describe("rotas de mercado secundario (feature 004)", () => {
     const res = await app.inject({
       method: "POST",
       url: "/listagens/1/comprar",
-      payload: { investorId: comprador.id },
+      cookies: await cookieDoInvestidor(comprador.id),
     });
 
     expect(res.statusCode).toBe(200);
@@ -232,7 +255,7 @@ describe("rotas de mercado secundario (feature 004)", () => {
     const res = await app.inject({
       method: "POST",
       url: "/listagens/1/comprar",
-      payload: { investorId: comprador.id },
+      cookies: await cookieDoInvestidor(comprador.id),
     });
 
     expect(res.statusCode).toBe(409);
@@ -257,7 +280,7 @@ describe("rotas de mercado secundario (feature 004)", () => {
     const res = await app.inject({
       method: "POST",
       url: "/listagens/1/comprar",
-      payload: { investorId: comprador.id },
+      cookies: await cookieDoInvestidor(comprador.id),
     });
 
     expect(res.statusCode).toBe(403);
@@ -278,7 +301,7 @@ describe("rotas de mercado secundario (feature 004)", () => {
     const res = await app.inject({
       method: "POST",
       url: "/listagens/1/comprar",
-      payload: { investorId: comprador.id },
+      cookies: await cookieDoInvestidor(comprador.id),
     });
 
     expect(res.statusCode).toBe(409);
@@ -298,11 +321,18 @@ describe("rotas de mercado secundario (feature 004)", () => {
     const res = await app.inject({
       method: "POST",
       url: "/listagens/999/comprar",
-      payload: { investorId: comprador.id },
+      cookies: await cookieDoInvestidor(comprador.id),
     });
 
     expect(res.statusCode).toBe(404);
     expect(res.json().codigo).toBe("LISTAGEM_NAO_ENCONTRADA");
+  });
+
+  it("POST /listagens/:id/comprar rejeita com SESSAO_INVALIDA sem cookie de sessao", async () => {
+    const res = await app.inject({ method: "POST", url: "/listagens/1/comprar" });
+    expect(res.statusCode).toBe(401);
+    expect(res.json().codigo).toBe("SESSAO_INVALIDA");
+    expect(comprarOnChain).not.toHaveBeenCalled();
   });
 
   it("POST /listagens/:id/cancelar assina Marketplace.cancelar quando o investidor e o vendedor", async () => {
@@ -318,7 +348,7 @@ describe("rotas de mercado secundario (feature 004)", () => {
     const res = await app.inject({
       method: "POST",
       url: "/listagens/1/cancelar",
-      payload: { investorId: vendedor.id },
+      cookies: await cookieDoInvestidor(vendedor.id),
     });
 
     expect(res.statusCode).toBe(200);
@@ -340,7 +370,7 @@ describe("rotas de mercado secundario (feature 004)", () => {
     const res = await app.inject({
       method: "POST",
       url: "/listagens/1/cancelar",
-      payload: { investorId: vendedor.id },
+      cookies: await cookieDoInvestidor(vendedor.id),
     });
 
     expect(res.statusCode).toBe(409);
@@ -361,7 +391,7 @@ describe("rotas de mercado secundario (feature 004)", () => {
     const res = await app.inject({
       method: "POST",
       url: "/listagens/1/cancelar",
-      payload: { investorId: outro.id },
+      cookies: await cookieDoInvestidor(outro.id),
     });
 
     expect(res.statusCode).toBe(403);

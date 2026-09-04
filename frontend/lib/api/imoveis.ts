@@ -1,6 +1,5 @@
-import { apiGet, apiPost } from "./http";
+import { apiGet, apiPostInvestidor } from "./http";
 import { weiParaReais } from "./money";
-import { exigirInvestidor } from "./session";
 import { ApiError } from "@/lib/errors";
 import type { Imovel, StatusImovel } from "./types";
 
@@ -61,6 +60,5 @@ export async function obterImovel(id: string): Promise<Imovel | null> {
 }
 
 export async function comprarCotas(imovelId: string, quantidade: number): Promise<void> {
-  const investidor = exigirInvestidor();
-  await apiPost(`/imoveis/${imovelId}/comprar`, { investorId: investidor.id, quantidade });
+  await apiPostInvestidor(`/imoveis/${imovelId}/comprar`, { quantidade });
 }

@@ -1,6 +1,6 @@
-import { apiGet, apiPost } from "./http";
+import { apiGet, apiGetInvestidor, apiPostInvestidor } from "./http";
 import { reaisParaWei, weiParaReais } from "./money";
-import { exigirInvestidor, obterInvestidorSalvo } from "./session";
+import { ApiError } from "@/lib/errors";
 import type { Listagem, StatusListagem } from "./types";
 
 type ListagemBackend = {
@@ -27,19 +27,34 @@ function converterListagem(listagem: ListagemBackend): Listagem {
   };
 }
 
-/** RF-31: mercado secundário. Espelha `backend/src/routes/marketplace.ts` (`004-mercado-secundario`). */
+/**
+ * RF-31: mercado secundário. Espelha `backend/src/routes/marketplace.ts` (`004-mercado-secundario`).
+ * `GET /listagens` é público e não sabe mais quem é "você" (feature 006 —
+ * antes disso vinha de `?investorId=` no query, confiado do cliente). Pra
+ * marcar `criadaPeloUsuarioAtual` sem voltar a confiar num id vindo do
+ * client, busca também `GET /listagens/minhas` (autenticada, via cookie de
+ * sessão) e cruza os ids no frontend. Se não houver sessão, trata como
+ * "nenhuma listagem própria" em vez de erro — é um estado normal (visitante
+ * ainda não logado).
+ */
 export async function listarListagens(): Promise<Listagem[]> {
-  const investidor = obterInvestidorSalvo();
-  const query = investidor ? `?investorId=${investidor.id}` : "";
-  const listagens = await apiGet<ListagemBackend[]>(`/listagens${query}`);
-  return listagens.map(converterListagem);
+  const todas = await apiGet<ListagemBackend[]>("/listagens");
+
+  let meusIds = new Set<string>();
+  try {
+    const minhas = await apiGetInvestidor<ListagemBackend[]>("/listagens/minhas");
+    meusIds = new Set(minhas.map((listagem) => listagem.id));
+  } catch (error) {
+    if (!(error instanceof ApiError && error.codigo === "SESSAO_INVALIDA")) throw error;
+  }
+
+  return todas.map((listagem) =>
+    converterListagem({ ...listagem, criadaPeloUsuarioAtual: meusIds.has(listagem.id) }),
+  );
 }
 
 export async function criarListagem(imovelId: string, cotas: number, precoPorCota: number): Promise<void> {
-  const investidor = exigirInvestidor();
-
-  await apiPost("/listagens", {
-    investorId: investidor.id,
+  await apiPostInvestidor("/listagens", {
     imovelId,
     cotas,
     precoPorCota: reaisParaWei(precoPorCota),
@@ -47,11 +62,9 @@ export async function criarListagem(imovelId: string, cotas: number, precoPorCot
 }
 
 export async function comprarListagem(id: string): Promise<void> {
-  const investidor = exigirInvestidor();
-  await apiPost(`/listagens/${id}/comprar`, { investorId: investidor.id });
+  await apiPostInvestidor(`/listagens/${id}/comprar`);
 }
 
 export async function cancelarListagem(id: string): Promise<void> {
-  const investidor = exigirInvestidor();
-  await apiPost(`/listagens/${id}/cancelar`, { investorId: investidor.id });
+  await apiPostInvestidor(`/listagens/${id}/cancelar`);
 }

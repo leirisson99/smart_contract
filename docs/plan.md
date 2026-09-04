@@ -33,6 +33,7 @@ Este pacote de especificações segue **Spec-Driven Development (SDD)** — toda
 | [ADR-0004](on-chain/decisions/ADR-0004-modelo-distribuicao-rendimentos.md) | Distribuição de rendimentos: pull-payment | approved |
 | [ADR-0005](on-chain/decisions/ADR-0005-estrategia-upgradability.md) | Upgradability: contratos imutáveis por imóvel | approved |
 | [ADR-0006](on-chain/decisions/ADR-0006-fronteira-onchain-offchain-kyc.md) | Fronteira on-chain/off-chain do KYC | approved |
+| [ADR-0007](on-chain/decisions/ADR-0007-sessao-otp-investidor.md) | Login sem senha (HOTP) + sessão opaca para o investidor | approved |
 
 ### Features — Smart Contract (`on-chain/features`)
 
@@ -56,6 +57,7 @@ Pacote separado (fora deste repositório) para specs de API e serviços off-chai
 | [003-portfolio-e-rendimentos](backend/features/003-portfolio-e-rendimentos/spec.md) | Leitura de portfólio e claim automático de rendimentos | 003 | draft |
 | [004-mercado-secundario](backend/features/004-mercado-secundario/spec.md) | Listagem e compra de cotas entre investidores | 004 | draft |
 | [005-painel-administrativo](backend/features/005-painel-administrativo/spec.md) | Endpoints do gestor: criar imóvel, depositar rendimento, consultar status de KYC | 002, 003 | draft |
+| [006-autenticacao-investidor](backend/features/006-autenticacao-investidor/spec.md) | Login sem senha (código HOTP por e-mail) + sessão real, fecha `SEC-B02` | 001 | approved |
 
 ### Features — Frontend (`frontend/features`)
 
@@ -88,3 +90,4 @@ Detalhe completo e tracker de perguntas em aberto: [`on-chain/roadmap.md`](on-ch
 | 2026-08-17 | Separação das specs de frontend em `specs-frontend/` — requisitos de UI (RF-27 a RF-32) extraídos de `specs-backend/features/001-plataforma-investidor` para `frontend/features/001-interface-investidor`; backend mantém RF-21 a RF-26 reescritos como API/serviço. |
 | 2026-08-19 | Criação de `sprints/` com a quebra em sprints da trilha de Smart Contract (features `001` a `004` de `on-chain/features`) — foco definido para ser o primeiro a entrar em execução, antes de backend/frontend/jurídico. |
 | 2026-09-01 | Specs de backend movidas para fora deste repositório, para `backend/features` (repositório irmão) — a antiga feature única `specs-backend/features/001-plataforma-investidor` (RF-21 a RF-26) foi quebrada em 5 features menores (`001-onboarding-e-custodia`, `002-investimento-primario`, `003-portfolio-e-rendimentos`, `004-mercado-secundario`, `005-painel-administrativo`; RF-33 a RF-35 adicionados para orquestração de KYC e mercado secundário, antes só mapeados em `integration.md` sem RF próprio). Cada feature backend passa a usar `spec.md`/`plan.md`/`tasks.md`/`implement.md` (este último substitui `integration.md` + `test-strategy.md`). |
+| 2026-09-04 | Nova feature `006-autenticacao-investidor` (RF-36 a RF-39) e `ADR-0007`: login sem senha (código HOTP por e-mail) + sessão real via cookie httpOnly, fecha `SEC-B02` (ausência de autenticação/sessão nas rotas do investidor, dívida aceita desde a Sprint 8) e a lacuna de perda de acesso que essa dívida não cobria. Rotas de `001`-`004` reendurecidas para derivar `investorId` da sessão em vez de um campo confiado do cliente. |

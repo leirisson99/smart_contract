@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "../src/db/client.js";
 import { config } from "../src/config.js";
 import { createCustodialWallet, encryptSecret } from "../src/services/walletCustody.js";
+import { gerarSegredoOtp } from "../src/services/hotp.js";
 
 vi.mock("../src/services/trustedIssuerSigner.js", () => ({
   emitirClaimOnChain: vi.fn(async () => "0xwebhookclaim"),
@@ -16,9 +17,11 @@ async function createInvestorWithSubmission(providerReference: string) {
   const investor = await prisma.investor.create({
     data: {
       fullName: "Investidor Teste",
+      email: `${wallet.address.toLowerCase()}@teste.local`,
       cpfEncrypted: encryptSecret("12345678900"),
       walletAddress: wallet.address,
       walletKeyEnc: wallet.walletKeyEnc,
+      otpSecretEnc: encryptSecret(gerarSegredoOtp()),
     },
   });
   await prisma.kycSubmission.create({

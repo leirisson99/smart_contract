@@ -7,16 +7,51 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Estado do login por HOTP (RFC 4226, feature 006-autenticacao-investidor):
+/// campos direto no Investor (nao numa tabela separada) porque existe so um
+/// desafio HOTP "ativo" por vez por investidor - `otpCounter` avanca a cada
+/// solicitacao (invalidando implicitamente qualquer codigo anterior nao
+/// verificado) e o codigo em si nunca e armazenado, so recalculado a partir
+/// de `otpSecretEnc`+`otpCounter` no momento da verificacao.
 model Investor {
-  id            String         @id @default(uuid())
-  fullName      String
-  cpfEncrypted  String
-  walletAddress String         @unique
-  walletKeyEnc  String
-  createdAt     DateTime       @default(now())
-  kyc           KycSubmission?
-  investments   Investment[]
-  yieldClaims   YieldClaim[]
+  id                 String            @id @default(uuid())
+  fullName           String
+  email              String            @unique
+  cpfEncrypted       String
+  walletAddress      String            @unique
+  walletKeyEnc       String
+  createdAt          DateTime          @default(now())
+  kyc                KycSubmission?
+  investments        Investment[]
+  yieldClaims        YieldClaim[]
+  sessions           InvestorSession[]
+
+  otpSecretEnc       String
+  otpCounter         Int       @default(0)
+  otpConsumedCounter Int?
+  otpCodeExpiresAt   DateTime?
+  otpAttempts        Int       @default(0)
+  otpLastRequestedAt DateTime?
+}
+
+/// Sessao de login do investidor (feature 006): token opaco de 256 bits
+/// entregue como cookie httpOnly, so o hash (sha256) fica no banco - o valor
+/// bruto nunca e persistido, entao um vazamento do banco nao permite forjar
+/// sessoes. Revogavel de verdade (logout seta `revokedAt`), ao contrario de
+/// um JWT autocontido.
+model InvestorSession {
+  id         String    @id @default(uuid())
+  investorId String
+  investor   Investor  @relation(fields: [investorId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  userAgent  String?
+  ip         String?
+
+  @@index([investorId, revokedAt])
 }
 
 model KycSubmission {

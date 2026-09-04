@@ -1,7 +1,7 @@
 ---
 status: approved
 owner: tech-lead
-last_updated: 2026-09-02
+last_updated: 2026-09-04
 ---
 
 # Contrato de API — Backend
@@ -16,7 +16,7 @@ Toda resposta de erro de negócio (4xx) deve ter o corpo:
 { "codigo": "SEM_KYC" }
 ```
 
-`codigo` é um dos 9 valores abaixo (`CodigoErro` em `frontend/lib/errors.ts`). Erros inesperados (5xx, infraestrutura) usam `ERRO_DESCONHECIDO`.
+`codigo` é um dos valores abaixo (`CodigoErro` em `frontend/lib/errors.ts`). Erros inesperados (5xx, infraestrutura) usam `ERRO_DESCONHECIDO`.
 
 | Código | Mensagem exibida ao investidor (pt-BR) | Quando ocorre |
 |---|---|---|
@@ -29,15 +29,22 @@ Toda resposta de erro de negócio (4xx) deve ter o corpo:
 | `SALDO_INSUFICIENTE` | "Você não possui cotas suficientes para criar essa listagem." | Criação de listagem além do holding do investidor (004) |
 | `ROLE_INVALIDA` | "Acesso restrito ao gestor da plataforma." | Chamada a qualquer rota `/admin/*` sem o header `x-admin-api-key` válido (005) |
 | `ERRO_DESCONHECIDO` | "Não foi possível concluir a ação. Tente novamente em instantes." | Qualquer falha não mapeada (timeout de RPC, erro de infraestrutura) |
+| `EMAIL_INVALIDO` | "Informe um e-mail válido." | `POST /investors`/`POST /auth/otp/solicitar` com e-mail malformado (006) |
+| `EMAIL_JA_CADASTRADO` | "Já existe um cadastro com esse e-mail. Faça login em vez de se cadastrar novamente." | `POST /investors` com e-mail já usado por outro investidor (006) |
+| `CODIGO_INVALIDO` | "Código incorreto. Confira o e-mail e tente novamente." | `POST /auth/otp/verificar` com código que não bate com o HOTP esperado, ou já consumido (006) |
+| `CODIGO_EXPIRADO` | "Esse código expirou. Solicite um novo." | `POST /auth/otp/verificar` após a janela de validade do código (5 min, 006) |
+| `LIMITE_SOLICITACOES_EXCEDIDO` | "Aguarde um minuto antes de pedir um novo código." | `POST /auth/otp/solicitar` antes do cooldown de 60s por e-mail, ou acima do limite de 5/min por IP (006) |
+| `LIMITE_TENTATIVAS_EXCEDIDO` | "Muitas tentativas incorretas. Solicite um novo código." | `POST /auth/otp/verificar` após 5 tentativas erradas seguidas para o mesmo código (006) |
+| `SESSAO_INVALIDA` | "Sua sessão expirou. Faça login novamente." | Qualquer rota que exija sessão (`preHandler: exigirInvestidor`) sem cookie `sid` válido (006) |
 
 ## Endpoints por feature
 
 ### 001 — Onboarding e Custódia ([spec](features/001-onboarding-e-custodia/spec.md))
 | Endpoint | Payload de entrada | Retorno (sucesso) | Erros possíveis |
 |---|---|---|---|
-| `POST /investors` | `{ nome, email, cpf }` | `Investidor { id, nome, email, statusKyc }` | `ERRO_DESCONHECIDO` |
-| `GET /investors/:id/kyc` | — | `{ statusKyc }` | `ERRO_DESCONHECIDO` |
-| `POST /investors/:id/kyc` | `multipart/form-data` (documentos) | `202 Accepted` | `409` se já houver submissão `PENDING`/`PROCESSING`/`APPROVED` |
+| `POST /investors` | `{ fullName, email, cpf }` | `201`, `{ investorId, walletAddress }` + `Set-Cookie: sid=...` (autentica automaticamente, ver 006) | `EMAIL_JA_CADASTRADO`, `ERRO_DESCONHECIDO` |
+| `GET /kyc` | — (via cookie `sid`) | `{ statusKyc }` | `SESSAO_INVALIDA`, `ERRO_DESCONHECIDO` |
+| `POST /kyc` | `multipart/form-data` (documentos), via cookie `sid` | `202 Accepted` | `SESSAO_INVALIDA`, `409` se já houver submissão `PENDING`/`PROCESSING`/`APPROVED` |
 | `POST /webhooks/kyc/mock` | payload do provedor (`providerReference`, resultado) | `200 OK` (idempotente) | — |
 
 ### 002 — Investimento Primário ([spec](features/002-investimento-primario/spec.md))
@@ -45,36 +52,50 @@ Toda resposta de erro de negócio (4xx) deve ter o corpo:
 |---|---|---|---|
 | `GET /imoveis` | — | `Imovel[]` | — |
 | `GET /imoveis/:id` | — | `Imovel \| null` | — |
-| `POST /imoveis/:id/comprar` | `{ quantidade }` | `200 OK` | `SEM_KYC`, `COTAS_INSUFICIENTES`, `VALOR_MINIMO_NAO_ATINGIDO` |
+| `POST /imoveis/:id/comprar` | `{ quantidade }`, via cookie `sid` | `200 OK` | `SESSAO_INVALIDA`, `SEM_KYC`, `COTAS_INSUFICIENTES`, `VALOR_MINIMO_NAO_ATINGIDO` |
 
 ### 003 — Portfólio e Rendimentos ([spec](features/003-portfolio-e-rendimentos/spec.md))
 | Endpoint | Payload de entrada | Retorno (sucesso) | Erros possíveis |
 |---|---|---|---|
-| `GET /investors/:id/portfolio` | — | `Portfolio { holdings[], valorTotalInvestido, rendimentosRecebidos[], rendimentoPendenteClaim }` | — |
+| `GET /portfolio` | — (via cookie `sid`) | `Portfolio { holdings[], valorTotalInvestido, rendimentosRecebidos[], rendimentoPendenteClaim }` | `SESSAO_INVALIDA` |
+| `POST /portfolio/claim` | — (via cookie `sid`) | `{ claimsExecutados }` | `SESSAO_INVALIDA`, `ERRO_DESCONHECIDO` |
 
-O `claim` automático (RF-24) é um job periódico, não um endpoint chamado pelo frontend.
+O `claim` automático (RF-24) é um job periódico, não um endpoint chamado pelo frontend — `POST /portfolio/claim` é o claim manual disparado pelo próprio investidor.
 
 ### 004 — Mercado Secundário ([spec](features/004-mercado-secundario/spec.md))
 | Endpoint | Payload de entrada | Retorno (sucesso) | Erros possíveis |
 |---|---|---|---|
-| `GET /listagens?investorId=` | — (`investorId` opcional, só para computar `criadaPeloUsuarioAtual`) | `Listagem[]` (só `status: "ativa"`) | — |
-| `POST /listagens` | `{ investorId, imovelId, cotas, precoPorCota }` (`precoPorCota` em wei, 18 casas — mesma unidade de `Imovel.precoPorCota`) | `Listagem` criada | `SALDO_INSUFICIENTE` |
-| `POST /listagens/:id/comprar` | `{ investorId }` | `200 OK` | `SEM_KYC`, `LISTAGEM_JA_VENDIDA`, `LISTAGEM_NAO_ENCONTRADA` |
-| `POST /listagens/:id/cancelar` | `{ investorId }` | `200 OK` | `LISTAGEM_NAO_ENCONTRADA` |
+| `GET /listagens` | — (pública, sem `criadaPeloUsuarioAtual`) | `Listagem[]` (só `status: "ativa"`) | — |
+| `GET /listagens/minhas` | — (via cookie `sid`) | `Listagem[]` só do investidor autenticado (`criadaPeloUsuarioAtual: true` em todas) | `SESSAO_INVALIDA` |
+| `POST /listagens` | `{ imovelId, cotas, precoPorCota }` (`precoPorCota` em wei, 18 casas — mesma unidade de `Imovel.precoPorCota`), via cookie `sid` | `Listagem` criada | `SESSAO_INVALIDA`, `SALDO_INSUFICIENTE` |
+| `POST /listagens/:id/comprar` | — (via cookie `sid`) | `200 OK` | `SESSAO_INVALIDA`, `SEM_KYC`, `LISTAGEM_JA_VENDIDA`, `LISTAGEM_NAO_ENCONTRADA` |
+| `POST /listagens/:id/cancelar` | — (via cookie `sid`) | `200 OK` | `SESSAO_INVALIDA`, `LISTAGEM_NAO_ENCONTRADA` |
 
-`comprar` sempre adquire a quantidade total disponível da listagem (sem compra parcial — mesmo comportamento do mock que o frontend tinha antes desta feature). `investorId` é necessário nesses três endpoints porque não existe autenticação/sessão no backend (mesmo gap de 001) — diverge do payload originalmente desenhado nesta tabela antes da implementação (Sprint 7), que não previa `investorId` explícito.
+`comprar` sempre adquire a quantidade total disponível da listagem (sem compra parcial — mesmo comportamento do mock que o frontend tinha antes desta feature). Desde a feature 006, o identificador do investidor nunca mais vem do payload/query — o frontend cruza `GET /listagens` (pública) com `GET /listagens/minhas` (autenticada) para marcar `criadaPeloUsuarioAtual` sem depender de um id vindo do cliente.
 
 ### 005 — Painel Administrativo ([spec](features/005-painel-administrativo/spec.md))
+
 | Endpoint | Payload de entrada | Retorno (sucesso) | Erros possíveis |
 |---|---|---|---|
 | `GET /admin/investidores` | — (header `x-admin-api-key`) | `{ id, nome, walletAddress, statusKyc }[]` | `403 ROLE_INVALIDA` |
 | `POST /admin/imoveis` | `{ nome, imagemUrl?, valorTotal (wei), totalCotas, rendimentoEstimadoAnual }` | `Imovel` criado (mesmo formato de `GET /imoveis`) | `403 ROLE_INVALIDA`; `400` se `valorTotal` não for divisível por `totalCotas` |
 | `POST /admin/imoveis/:id/depositar-rendimento` | `{ valor (wei) }` | `{ idCiclo, txHash }` | `403 ROLE_INVALIDA`; `404` se imóvel não existir |
 
-Todas as rotas `/admin/*` exigem o header `x-admin-api-key` (feature 005 — único mecanismo de autenticação do backend hoje, decisão em [`features/005-painel-administrativo/plan.md`](features/005-painel-administrativo/plan.md)). `statusKyc` retorna o enum bruto do backend (`PENDING`/`PROCESSING`/`APPROVED`/`REJECTED`, sem submissão = `PENDING`), traduzido pelo frontend como em `GET /investors/:id/kyc`.
+Todas as rotas `/admin/*` exigem o header `x-admin-api-key` (feature 005 — único mecanismo de autenticação administrativa do backend, decisão em [`features/005-painel-administrativo/plan.md`](features/005-painel-administrativo/plan.md)). `statusKyc` retorna o enum bruto do backend (`PENDING`/`PROCESSING`/`APPROVED`/`REJECTED`, sem submissão = `PENDING`), traduzido pelo frontend como em `GET /kyc`.
 
-## Gap conhecido (2026-09-02)
+### 006 — Autenticação do Investidor ([spec](features/006-autenticacao-investidor/spec.md))
 
-O código real de 001 (`backend/src/routes/{investors,kyc,webhooks}.ts`) hoje retorna erros como strings livres (`{ error: "fullName e cpf sao obrigatorios" }`), não neste formato — permanece como dívida técnica (não alinhado nesta sprint). Os endpoints de 002/003 (Sprint 6), 004 (Sprint 7) e 005 (Sprint 8) já foram implementados seguindo o vocabulário `codigo` para os cenários RNF-16/de negócio (`SEM_KYC`, `COTAS_INSUFICIENTES`, `VALOR_MINIMO_NAO_ATINGIDO`, `SALDO_INSUFICIENTE`, `LISTAGEM_JA_VENDIDA`, `LISTAGEM_NAO_ENCONTRADA`, `ROLE_INVALIDA`); erros de "recurso não encontrado" (imóvel/investidor/listagem inexistente, ou listagem que não pertence ao investidor) e de validação de payload usam mensagens livres, por não terem código próprio nesta lista.
+| Endpoint | Payload de entrada | Retorno (sucesso) | Erros possíveis |
+|---|---|---|---|
+| `POST /auth/otp/solicitar` | `{ email }` | `202`, `{ ok: true }` (idêntico mesmo se o e-mail não existir — anti-enumeração) | `EMAIL_INVALIDO`, `LIMITE_SOLICITACOES_EXCEDIDO` |
+| `POST /auth/otp/verificar` | `{ email, codigo }` | `200`, `{ investorId, fullName, email, statusKyc }` + `Set-Cookie: sid=...` | `CODIGO_INVALIDO`, `CODIGO_EXPIRADO`, `LIMITE_TENTATIVAS_EXCEDIDO` |
+| `GET /auth/me` | — (via cookie `sid`) | `{ investorId, fullName, email, statusKyc, walletAddress }` | `SESSAO_INVALIDA` (resposta esperada de visitante deslogado, não deve virar alerta de erro no frontend) |
+| `POST /auth/logout` | — | `200`, `{ ok: true }` (idempotente mesmo sem sessão) | — |
 
-As rotas de `001`-`004` (investidor) permanecem sem nenhuma autenticação mesmo após esta sprint — `investorId` seguem indo explícito no payload, sem sessão. Avaliado como parte da Sprint 8 (`docs/sprints/08-painel-administrativo-e-seguranca-backend.md`) e mantido como dívida aceita da POC: o RBAC introduzido cobre o gap de maior severidade (ações administrativas que criam imóveis e movem fundos de rendimento), enquanto autenticar o investidor exigiria um mecanismo de sessão/login que nenhuma feature de negócio previu — rastreado como melhoria futura, não um bloqueio de código (ver checklist de segurança off-chain, `security-checklist.md`).
+Cookie `sid`: httpOnly, `SameSite=Lax`, `Secure` fora de dev, TTL de 7 dias com renovação deslizante. Nunca lido pelo JS do client — o frontend descobre se está autenticado chamando `GET /auth/me` através do proxy same-origin (`frontend/app/api/investor/[...path]/route.ts`), nunca inspecionando o cookie diretamente. Decisão completa (HOTP vs TOTP vs código aleatório, sessão opaca vs JWT, proxy vs CORS direto) em [`features/006-autenticacao-investidor/plan.md`](features/006-autenticacao-investidor/plan.md) e [`../on-chain/decisions/ADR-0007-sessao-otp-investidor.md`](../on-chain/decisions/ADR-0007-sessao-otp-investidor.md).
+
+## Gap conhecido (2026-09-04)
+
+O código real de 001 (`backend/src/routes/{investors,kyc,webhooks}.ts`) ainda retorna alguns erros como strings livres (`{ error: "investidor nao encontrado" }`) em vez do formato `codigo` — permanece como dívida técnica. Os endpoints de 002/003/004/005 seguem o vocabulário `codigo` para os cenários RNF-16/de negócio; erros de "recurso não encontrado" (imóvel/listagem inexistente, ou listagem que não pertence ao investidor) e de validação de payload usam mensagens livres, por não terem código próprio nesta lista.
+
+**Fechado em 2026-09-04**: as rotas de `001`-`004` (investidor) agora exigem sessão (cookie `sid`, feature 006) e derivam a identidade do investidor dela, nunca mais de um campo confiado do payload/query/URL — fecha `SEC-B02` (ver `security-checklist.md`). O gap era rastreado aqui desde a Sprint 8; ver histórico em [`PENDENCIAS.md`](../PENDENCIAS.md#resolvidas).

@@ -18,6 +18,8 @@ O frontend **não** tem acesso a chaves privadas, não assina transações e nã
 - Mantém a promessa de "sem conhecimento técnico" do pitch (slide 4) — o investidor nunca lida com carteira, gas ou assinatura.
 - Centraliza a custódia e a validação de segurança em um único ponto (backend), reduzindo superfície de ataque no cliente.
 
+**Sessão do investidor (feature `006-autenticacao-investidor`)**: pela mesma razão de fronteira, o cookie de sessão (`sid`, httpOnly) também nunca é lido nem manipulado pelo JavaScript do client — toda chamada que depende dele passa por um proxy same-origin (`frontend/app/api/investor/[...path]/route.ts`, mesmo padrão já usado para a chave administrativa em `frontend/app/api/admin/[...path]/route.ts`). O frontend descobre se está autenticado chamando `GET /auth/me` através desse proxy, nunca inspecionando o cookie diretamente.
+
 ## Fluxo ponta a ponta
 Ver tabela de cenários em `spec.md` — cobre RF-27 a RF-32, cada um consumindo um endpoint do backend mapeado em `integration.md` desta feature.
 

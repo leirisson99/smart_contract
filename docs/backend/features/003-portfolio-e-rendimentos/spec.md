@@ -38,3 +38,4 @@ Payloads, formato de erro e o vocabulário completo de códigos ficam em [`../..
 - Depósito do rendimento mensal pelo gestor — coberto por [005-painel-administrativo](../005-painel-administrativo/spec.md).
 - Criação de carteira custodial — coberta por [001](../001-onboarding-e-custodia/spec.md).
 - Telas de portfólio — cobertas por [`../../../frontend/features/001-interface-investidor`](../../../frontend/features/001-interface-investidor/spec.md).
+- Autenticação/sessão do investidor — coberta por [006-autenticacao-investidor](../006-autenticacao-investidor/spec.md); `GET /portfolio`/`POST /portfolio/claim` derivam o investidor da sessão (`preHandler exigirInvestidor`), não mais de `:id` na URL.

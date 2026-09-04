@@ -64,14 +64,15 @@ describe.skipIf(!shouldRun)("fluxo de investimento primario + rendimentos end-to
     const signup = await app.inject({
       method: "POST",
       url: "/investors",
-      payload: { fullName: "Investidor E2E Imovel", cpf: "45678912300" },
+      payload: { fullName: "Investidor E2E Imovel", email: "investidor-e2e-imovel@teste.local", cpf: "45678912300" },
     });
-    const { investorId, walletAddress } = signup.json();
+    const { walletAddress } = signup.json();
+    const cookies = { sid: signup.cookies.find((c) => c.name === "sid")?.value as string };
 
-    await app.inject({ method: "POST", url: `/investors/${investorId}/kyc`, payload: { forceResult: "APPROVED" } });
+    await app.inject({ method: "POST", url: "/kyc", cookies, payload: { forceResult: "APPROVED" } });
     await vi.waitFor(
       async () => {
-        const status = await app.inject({ method: "GET", url: `/investors/${investorId}/kyc` });
+        const status = await app.inject({ method: "GET", url: "/kyc", cookies });
         expect(status.json().status).toBe("APPROVED");
       },
       { timeout: 10000 },
@@ -100,7 +101,8 @@ describe.skipIf(!shouldRun)("fluxo de investimento primario + rendimentos end-to
     const compra = await app.inject({
       method: "POST",
       url: `/imoveis/${property.id}/comprar`,
-      payload: { investorId, quantidade: 1 },
+      cookies,
+      payload: { quantidade: 1 },
     });
     expect(compra.statusCode).toBe(200);
 
@@ -112,7 +114,7 @@ describe.skipIf(!shouldRun)("fluxo de investimento primario + rendimentos end-to
     });
     expect(saldoOnChain).toBe(1n);
 
-    const portfolioAntes = await app.inject({ method: "GET", url: `/investors/${investorId}/portfolio` });
+    const portfolioAntes = await app.inject({ method: "GET", url: "/portfolio", cookies });
     expect(portfolioAntes.json().holdings[0]).toMatchObject({ cotas: 1 });
     expect(portfolioAntes.json().rendimentoPendenteClaim).toBe("0");
 
@@ -133,7 +135,7 @@ describe.skipIf(!shouldRun)("fluxo de investimento primario + rendimentos end-to
     const jobResult = await runYieldClaimJob();
     expect(jobResult.claimsExecutados).toBeGreaterThanOrEqual(1);
 
-    const portfolioDepois = await app.inject({ method: "GET", url: `/investors/${investorId}/portfolio` });
+    const portfolioDepois = await app.inject({ method: "GET", url: "/portfolio", cookies });
     const body = portfolioDepois.json();
     expect(body.rendimentosRecebidos).toHaveLength(1);
     expect(body.rendimentoPendenteClaim).toBe("0");

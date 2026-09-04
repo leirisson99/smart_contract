@@ -1,6 +1,8 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { prisma } from "../src/db/client.js";
 import { createCustodialWallet, encryptSecret } from "../src/services/walletCustody.js";
+import { gerarSegredoOtp } from "../src/services/hotp.js";
+import { criarSessao } from "../src/services/investorSession.js";
 
 vi.mock("../src/services/propertyChain.js", () => ({
   lerImovelOnChain: vi.fn(async () => ({
@@ -24,11 +26,19 @@ async function createInvestor() {
   return prisma.investor.create({
     data: {
       fullName: "Investidor Portfolio",
+      email: `${wallet.address.toLowerCase()}@teste.local`,
       cpfEncrypted: encryptSecret("12345678900"),
       walletAddress: wallet.address,
       walletKeyEnc: wallet.walletKeyEnc,
+      otpSecretEnc: encryptSecret(gerarSegredoOtp()),
     },
   });
+}
+
+/** Simula login (feature 006): mint direto de uma sessao, sem passar pelo HTTP de /auth/*. */
+async function cookieDoInvestidor(investorId: string): Promise<{ sid: string }> {
+  const sessao = await criarSessao(investorId);
+  return { sid: sessao.token };
 }
 
 async function createProperty() {
@@ -61,9 +71,10 @@ describe("rota de portfolio (feature 003)", () => {
     await app.close();
   });
 
-  it("retorna 404 para investidor inexistente", async () => {
-    const res = await app.inject({ method: "GET", url: "/investors/nao-existe/portfolio" });
-    expect(res.statusCode).toBe(404);
+  it("retorna 401 SESSAO_INVALIDA sem cookie de sessao", async () => {
+    const res = await app.inject({ method: "GET", url: "/portfolio" });
+    expect(res.statusCode).toBe(401);
+    expect(res.json().codigo).toBe("SESSAO_INVALIDA");
   });
 
   it("agrega holdings, valor investido e historico de rendimentos", async () => {
@@ -79,7 +90,11 @@ describe("rota de portfolio (feature 003)", () => {
       data: { investorId: investor.id, propertyId: property.id, cicloId: 1, valor: "150", txHash: "0xclaim1" },
     });
 
-    const res = await app.inject({ method: "GET", url: `/investors/${investor.id}/portfolio` });
+    const res = await app.inject({
+      method: "GET",
+      url: "/portfolio",
+      cookies: await cookieDoInvestidor(investor.id),
+    });
     expect(res.statusCode).toBe(200);
     const body = res.json();
 
@@ -100,7 +115,11 @@ describe("rota de portfolio (feature 003)", () => {
     vi.mocked(cicloAtualOnChain).mockResolvedValue(2n);
     vi.mocked(valorReivindicavelOnChain).mockImplementation(async (_dist, _wallet, ciclo) => (ciclo === 1n ? 100n : 50n));
 
-    const res = await app.inject({ method: "GET", url: `/investors/${investor.id}/portfolio` });
+    const res = await app.inject({
+      method: "GET",
+      url: "/portfolio",
+      cookies: await cookieDoInvestidor(investor.id),
+    });
     expect(res.json().rendimentoPendenteClaim).toBe("150");
   });
 });

@@ -50,3 +50,23 @@ export function apiGetAdmin<T>(path: string): Promise<T> {
 export function apiPostAdmin<T>(path: string, payload?: unknown): Promise<T> {
   return requestAdmin<T>(`/api${path}`, { method: "POST", body: JSON.stringify(payload ?? {}) });
 }
+
+/**
+ * Chamadas que exigem a sessao do investidor (feature 006) passam por
+ * `app/api/investor/[...path]/route.ts` (mesma origem, roda no servidor do
+ * Next.js) em vez de ir direto ao backend — assim o cookie `sid` (httpOnly)
+ * viaja sempre same-origin do ponto de vista do browser, sem depender de
+ * `credentials:'include'`/CORS cross-site (mesmo racional do proxy admin,
+ * que existe para nao expor `x-admin-api-key` ao cliente).
+ */
+function requestInvestidor<T>(path: string, init?: RequestInit): Promise<T> {
+  return request<T>(path, init, "");
+}
+
+export function apiGetInvestidor<T>(path: string): Promise<T> {
+  return requestInvestidor<T>(`/api/investor${path}`);
+}
+
+export function apiPostInvestidor<T>(path: string, payload?: unknown): Promise<T> {
+  return requestInvestidor<T>(`/api/investor${path}`, { method: "POST", body: JSON.stringify(payload ?? {}) });
+}

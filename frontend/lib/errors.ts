@@ -11,7 +11,15 @@ export type CodigoErro =
   | "LISTAGEM_NAO_ENCONTRADA"
   | "SALDO_INSUFICIENTE"
   | "ROLE_INVALIDA"
-  | "ERRO_DESCONHECIDO";
+  | "ERRO_DESCONHECIDO"
+  // feature 006-autenticacao-investidor (login por HOTP)
+  | "EMAIL_INVALIDO"
+  | "EMAIL_JA_CADASTRADO"
+  | "CODIGO_INVALIDO"
+  | "CODIGO_EXPIRADO"
+  | "LIMITE_SOLICITACOES_EXCEDIDO"
+  | "LIMITE_TENTATIVAS_EXCEDIDO"
+  | "SESSAO_INVALIDA";
 
 const MENSAGENS: Record<CodigoErro, string> = {
   SEM_KYC: "Sua verificação de identidade precisa ser concluída antes de investir.",
@@ -23,6 +31,13 @@ const MENSAGENS: Record<CodigoErro, string> = {
   SALDO_INSUFICIENTE: "Você não possui cotas suficientes para criar essa listagem.",
   ROLE_INVALIDA: "Acesso restrito ao gestor da plataforma.",
   ERRO_DESCONHECIDO: "Não foi possível concluir a ação. Tente novamente em instantes.",
+  EMAIL_INVALIDO: "Informe um e-mail válido.",
+  EMAIL_JA_CADASTRADO: "Já existe um cadastro com esse e-mail. Faça login em vez de se cadastrar novamente.",
+  CODIGO_INVALIDO: "Código incorreto. Confira o e-mail e tente novamente.",
+  CODIGO_EXPIRADO: "Esse código expirou. Solicite um novo.",
+  LIMITE_SOLICITACOES_EXCEDIDO: "Aguarde um minuto antes de pedir um novo código.",
+  LIMITE_TENTATIVAS_EXCEDIDO: "Muitas tentativas incorretas. Solicite um novo código.",
+  SESSAO_INVALIDA: "Sua sessão expirou. Faça login novamente.",
 };
 
 export class ApiError extends Error {

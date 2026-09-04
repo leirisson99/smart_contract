@@ -51,3 +51,4 @@ Payloads, formato de erro e o vocabulário completo de códigos ficam em [`../..
 - Custódia real (HSM/KMS) da chave do Trusted Issuer e das carteiras custodiais — dívida técnica rastreada na task 1 de `tasks.md` e no [ADR-0006](../../../on-chain/decisions/ADR-0006-fronteira-onchain-offchain-kyc.md); não bloqueia esta spec.
 - Execução de transações de investimento, claim de rendimentos ou mercado secundário — cobertas por [002](../002-investimento-primario/spec.md), [003](../003-portfolio-e-rendimentos/spec.md) e [004](../004-mercado-secundario/spec.md).
 - Telas de cadastro/upload de documentos — cobertas por [`../../../frontend/features/001-interface-investidor`](../../../frontend/features/001-interface-investidor/spec.md).
+- Autenticação/sessão do investidor (login por código, cookie de sessão) — coberta por [006-autenticacao-investidor](../006-autenticacao-investidor/spec.md), que também acrescenta o campo `email` ao cadastro desta feature.
