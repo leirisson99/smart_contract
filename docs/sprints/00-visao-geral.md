@@ -36,7 +36,7 @@ As sprints 1-4 cobrem **a construção dos contratos** (`../on-chain/features/00
 |---|---|---|
 | [Sprint 5](05-reconciliacao-e-aprovacao-especificacoes-backend.md) | Reconciliar specs de `001` com o código real, formalizar backend-como-Trusted-Issuer (ADR-0006), aprovar specs `002-005`, publicar `../backend/api-contract.md` | done |
 | [Sprint 6](06-investimento-e-portfolio.md) | Features `002-investimento-primario` e `003-portfolio-e-rendimentos` (paralelizáveis entre si) | in-progress |
-| [Sprint 7](07-mercado-secundario.md) | Feature `004-mercado-secundario` (paralelizável à Sprint 6) | in-progress |
+| [Sprint 7](07-mercado-secundario.md) | Feature `004-mercado-secundario` (paralelizável à Sprint 6) | done |
 | [Sprint 8](08-painel-administrativo-e-seguranca-backend.md) | Feature `005-painel-administrativo` + autenticação/RBAC transversal + revisão de segurança off-chain | done |
 
 ### Definition of Done — trilha Backend

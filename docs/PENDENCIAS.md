@@ -1,7 +1,7 @@
 ---
 status: living-document
 owner: tech-lead
-last_updated: 2026-08-22
+last_updated: 2026-09-04
 ---
 
 # Pendências do Projeto
@@ -33,6 +33,7 @@ Não duplicadas aqui — tracker completo (imóvel piloto, SPE, orçamento, equi
 
 ## Resolvidas
 
+- **2026-09-04** — Três gaps de robustez do backend administrativo/mercado secundário fechados: (1) `criarImovelOnChain` (`POST /admin/imoveis`) podia deixar um `PropertyToken`/`DividendDistributor` órfão on-chain sem nenhuma linha no banco se a 2ª/3ª transação falhasse — agora `PropertyCreationAttempt` registra a tentativa antes de iniciar as transações e é atualizada incrementalmente, para que uma falha parcial fique rastreável em vez de perdida; (2) `POST /admin/imoveis/:id/depositar-rendimento` não tinha idempotência — duplo clique/retry do gestor podia criar dois ciclos de rendimento reais on-chain, agora bloqueado por uma trava atômica por imóvel (`rendimentoDepositoTravadoEm`); (3) `POST /listagens/:id/cancelar` não tratava `TransacaoRevertidaError` na mesma corrida SEC-04 já coberta em `comprar`, caindo em `502 ERRO_DESCONHECIDO` em vez de `409 LISTAGEM_JA_VENDIDA`. Também: `zod` (dependência instalada mas nunca importada) passou a validar o body das 8 rotas que faziam `request.body as {...}` sem checagem de runtime; CI adicionado para backend/frontend (antes só o contrato tinha, e o workflow dele estava em `projeto_imobiliaria/.github/workflows/`, uma pasta comum do repo — GitHub Actions só lê `.github/workflows/` na raiz, então nunca rodou; consolidado em `.github/workflows/` na raiz).
 - **2026-09-02** — Ausência total de autenticação no backend (nenhuma rota, de nenhuma feature, tinha qualquer mecanismo de auth) resolvida para a superfície administrativa: Sprint 8 (`005-painel-administrativo`) introduziu RBAC via chave estática (`ADMIN_API_KEY`, header `x-admin-api-key`) cobrindo todas as rotas `/admin/*`. Checklist de segurança off-chain publicado pela primeira vez (`docs/backend/security-checklist.md`, item pendente desde a Sprint 5/feature 001). O `scripts/deposit-yield.ts` manual foi removido — depósito de rendimento agora é `POST /admin/imoveis/:id/depositar-rendimento`.
 
 - **2026-08-20** — `SEC-10` (PII on-chain) mitigado: `IdentityRegistry` só grava claims/hash de assinatura, nunca CPF/documento.

@@ -11,5 +11,21 @@ services:
     volumes:
       - kyc-postgres-data:/var/lib/postgresql/data
 
+  # Banco dedicado a `npm test` (backend/.env.test) - separado do Postgres de
+  # dev/demo acima porque os testes limpam as tabelas (`beforeEach`), o que
+  # ja apagou dados de demo mais de uma vez rodando tudo contra o mesmo banco.
+  postgres-test:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kyc
+      POSTGRES_PASSWORD: kyc
+      POSTGRES_DB: kyc_test
+    ports:
+      - "5433:5432"
+    volumes:
+      - kyc-postgres-test-data:/var/lib/postgresql/data
+
 volumes:
   kyc-postgres-data:
+  kyc-postgres-test-data:
