@@ -326,6 +326,27 @@ describe("rotas de mercado secundario (feature 004)", () => {
     expect(cancelarOnChain).toHaveBeenCalledWith(expect.objectContaining({ idListagem: 1n }));
   });
 
+  it("POST /listagens/:id/cancelar rejeita com LISTAGEM_JA_VENDIDA quando o cancelamento reverte por concorrencia (SEC-04)", async () => {
+    const vendedor = await createInvestor();
+    vi.mocked(lerListagemOnChain).mockResolvedValue({
+      vendedor: vendedor.walletAddress as `0x${string}`,
+      propertyToken: "0xtoken" as `0x${string}`,
+      quantidadeDisponivel: 5n,
+      precoPorCota: 200n,
+      ativa: true,
+    });
+    vi.mocked(cancelarOnChain).mockRejectedValue(new TransacaoRevertidaError("0xhash"));
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/listagens/1/cancelar",
+      payload: { investorId: vendedor.id },
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.json().codigo).toBe("LISTAGEM_JA_VENDIDA");
+  });
+
   it("POST /listagens/:id/cancelar rejeita quando o investidor nao e o dono da listagem", async () => {
     const vendedor = await createInvestor();
     const outro = await createInvestor();

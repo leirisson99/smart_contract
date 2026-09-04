@@ -1,13 +1,21 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { prisma } from "../db/client.js";
 import { createCustodialWallet, encryptSecret } from "../services/walletCustody.js";
+import { mensagemErroZod } from "../validation.js";
+
+const criarInvestorSchema = z.object({
+  fullName: z.string().min(1, "fullName e obrigatorio"),
+  cpf: z.string().min(1, "cpf e obrigatorio"),
+});
 
 export async function investorRoutes(app: FastifyInstance) {
   app.post("/investors", async (request, reply) => {
-    const body = request.body as { fullName?: string; cpf?: string } | undefined;
-    if (!body?.fullName || !body?.cpf) {
-      return reply.code(400).send({ error: "fullName e cpf sao obrigatorios" });
+    const parsed = criarInvestorSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: mensagemErroZod(parsed.error) });
     }
+    const body = parsed.data;
 
     const wallet = createCustodialWallet();
     const investor = await prisma.investor.create({

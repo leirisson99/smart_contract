@@ -1,4 +1,5 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { prisma } from "../db/client.js";
 import { decryptSecret } from "../services/walletCustody.js";
 import { isVerifiedOnChain } from "../services/trustedIssuerSigner.js";
@@ -13,8 +14,20 @@ import {
   type ListagemOnChain,
 } from "../services/marketplaceChain.js";
 import { garantirGasParaCarteira, garantirSaldoMoedaTeste } from "../services/gasSponsor.js";
+import { mensagemErroZod } from "../validation.js";
 
 const ENDERECO_ZERO = "0x0000000000000000000000000000000000000000";
+
+const criarListagemSchema = z.object({
+  investorId: z.string().min(1, "investorId e obrigatorio"),
+  imovelId: z.string().min(1, "imovelId e obrigatorio"),
+  cotas: z.number().int("cotas deve ser um inteiro positivo").positive("cotas deve ser um inteiro positivo"),
+  precoPorCota: z.string().min(1, "precoPorCota e obrigatorio"),
+});
+
+const investorIdSchema = z.object({
+  investorId: z.string().min(1, "investorId e obrigatorio"),
+});
 
 /** Compara enderecos ignorando caixa - o RPC nao garante checksum EIP-55 no retorno de `readContract`. */
 function mesmoEndereco(a: string, b: string): boolean {
@@ -66,22 +79,11 @@ export async function marketplaceRoutes(app: FastifyInstance) {
   });
 
   app.post("/listagens", async (request, reply) => {
-    const body = request.body as
-      | { investorId?: string; imovelId?: string; cotas?: number; precoPorCota?: string }
-      | undefined;
-
-    if (
-      !body?.investorId ||
-      !body?.imovelId ||
-      !body?.cotas ||
-      !Number.isInteger(body.cotas) ||
-      body.cotas <= 0 ||
-      !body?.precoPorCota
-    ) {
-      return reply
-        .code(400)
-        .send({ error: "investorId, imovelId, cotas (inteiro positivo) e precoPorCota sao obrigatorios" });
+    const parsed = criarListagemSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: mensagemErroZod(parsed.error) });
     }
+    const body = parsed.data;
 
     const investor = await prisma.investor.findUnique({ where: { id: body.investorId } });
     if (!investor) {
@@ -132,10 +134,11 @@ export async function marketplaceRoutes(app: FastifyInstance) {
 
   app.post("/listagens/:id/comprar", async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = request.body as { investorId?: string } | undefined;
-    if (!body?.investorId) {
-      return reply.code(400).send({ error: "investorId e obrigatorio" });
+    const parsed = investorIdSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: mensagemErroZod(parsed.error) });
     }
+    const body = parsed.data;
 
     const investor = await prisma.investor.findUnique({ where: { id: body.investorId } });
     if (!investor) {
@@ -218,10 +221,11 @@ export async function marketplaceRoutes(app: FastifyInstance) {
 
   app.post("/listagens/:id/cancelar", async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = request.body as { investorId?: string } | undefined;
-    if (!body?.investorId) {
-      return reply.code(400).send({ error: "investorId e obrigatorio" });
+    const parsed = investorIdSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: mensagemErroZod(parsed.error) });
     }
+    const body = parsed.data;
 
     const investor = await prisma.investor.findUnique({ where: { id: body.investorId } });
     if (!investor) {
@@ -249,6 +253,12 @@ export async function marketplaceRoutes(app: FastifyInstance) {
       const txHash = await cancelarOnChain({ vendedorPrivateKey: investorPrivateKey, idListagem });
       return reply.send({ txHash });
     } catch (err) {
+      // SEC-04: mesma corrida de `comprar` (linha 205+) - se a listagem foi
+      // comprada/cancelada por outra requisicao entre a leitura otimista
+      // acima e o envio da transacao, `cancelar` reverte on-chain.
+      if (err instanceof TransacaoRevertidaError) {
+        return reply.code(409).send({ codigo: "LISTAGEM_JA_VENDIDA" });
+      }
       request.log.error({ err }, "falha ao executar Marketplace.cancelar on-chain");
       return reply.code(502).send({ codigo: "ERRO_DESCONHECIDO" });
     }

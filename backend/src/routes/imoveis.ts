@@ -1,9 +1,16 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { prisma } from "../db/client.js";
 import { decryptSecret } from "../services/walletCustody.js";
 import { isVerifiedOnChain } from "../services/trustedIssuerSigner.js";
 import { balanceOfOnChain, comprarCotasOnChain, lerImovelOnChain } from "../services/propertyChain.js";
 import { garantirGasParaCarteira, garantirSaldoMoedaTeste } from "../services/gasSponsor.js";
+import { mensagemErroZod } from "../validation.js";
+
+const comprarImovelSchema = z.object({
+  investorId: z.string().min(1, "investorId e obrigatorio"),
+  quantidade: z.number().int("quantidade deve ser um inteiro positivo").positive("quantidade deve ser um inteiro positivo"),
+});
 
 export async function serializeImovel(property: { id: string; imagemUrl: string | null; rendimentoEstimadoAnual: number; status: string; valorMinimoInvestimento: string; propertyTokenAddress: string }) {
   const onChain = await lerImovelOnChain(property.propertyTokenAddress as `0x${string}`);
@@ -38,11 +45,11 @@ export async function imoveisRoutes(app: FastifyInstance) {
 
   app.post("/imoveis/:id/comprar", async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = request.body as { investorId?: string; quantidade?: number } | undefined;
-
-    if (!body?.investorId || !body?.quantidade || !Number.isInteger(body.quantidade) || body.quantidade <= 0) {
-      return reply.code(400).send({ error: "investorId e quantidade (inteiro positivo) sao obrigatorios" });
+    const parsed = comprarImovelSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: mensagemErroZod(parsed.error) });
     }
+    const body = parsed.data;
 
     const property = await prisma.property.findUnique({ where: { id } });
     if (!property) {

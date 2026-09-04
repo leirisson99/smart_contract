@@ -38,16 +38,50 @@ model KycSubmission {
 /// divergir da fonte da verdade (o contrato). Aqui fica so o que o contrato
 /// nao guarda (imagem, status de UX, rendimento estimado, valor minimo).
 model Property {
-  id                         String       @id @default(uuid())
-  propertyTokenAddress       String       @unique
-  dividendDistributorAddress String      @unique
-  imagemUrl                  String?
-  rendimentoEstimadoAnual    Float
-  status                     String       @default("EM_CAPTACAO")
-  valorMinimoInvestimento    String
-  createdAt                  DateTime     @default(now())
-  investments                Investment[]
-  yieldClaims                YieldClaim[]
+  id                           String       @id @default(uuid())
+  propertyTokenAddress         String       @unique
+  dividendDistributorAddress   String      @unique
+  imagemUrl                    String?
+  rendimentoEstimadoAnual      Float
+  status                       String       @default("EM_CAPTACAO")
+  valorMinimoInvestimento      String
+  /// CAS de exclusao mutua do POST /admin/imoveis/:id/depositar-rendimento:
+  /// setado para `now()` (via `updateMany` condicional) antes de acionar
+  /// DividendDistributor.depositarRendimento e liberado (`null`) no
+  /// `finally`, para que um duplo-clique/retry concorrente do gestor receba
+  /// 409 em vez de criar um segundo ciclo real on-chain. Uma trava mais
+  /// antiga que o TTL (rota) e tratada como presa (processo derrubado no
+  /// meio) e pode ser retomada.
+  rendimentoDepositoTravadoEm  DateTime?
+  createdAt                    DateTime     @default(now())
+  investments                  Investment[]
+  yieldClaims                  YieldClaim[]
+}
+
+/// Rastreio de cada chamada a POST /admin/imoveis (RF-25): criarImovelOnChain
+/// executa 3 transacoes on-chain sequenciais (deploy do PropertyToken via
+/// PropertyFactory, deploy do DividendDistributor, grantRole do
+/// SNAPSHOT_ROLE) e so entao a linha em `Property` e criada. Sem rollback
+/// possivel em blockchain, esta tabela existe para que uma falha na 2a/3a
+/// transacao nunca deixe contratos deployados on-chain sem nenhum rastro no
+/// banco - a tentativa fica gravada (com os enderecos ja obtidos) para
+/// reconciliacao manual por um gestor, em vez de ser descartada em memoria.
+model PropertyCreationAttempt {
+  id                          String   @id @default(uuid())
+  nome                        String
+  valorTotal                  String
+  totalCotas                  Int
+  rendimentoEstimadoAnual     Float
+  imagemUrl                   String?
+  status                      String   @default("PENDING")
+  propertyTokenAddress        String?
+  dividendDistributorAddress  String?
+  txHashCriacao                String?
+  txHashDistributor            String?
+  erro                        String?
+  propertyId                  String?
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
 }
 
 /// Ledger de aquisicoes de cotas, tanto primarias (RF-22, `PropertyToken.comprarCotas`)

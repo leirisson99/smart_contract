@@ -1,15 +1,25 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { prisma } from "../db/client.js";
 import { MockKycProvider } from "../services/kycProvider/mockProvider.js";
 import { processKycWebhookResult } from "../services/kycWebhookService.js";
 import { decryptSecret } from "../services/walletCustody.js";
+import { mensagemErroZod } from "../validation.js";
 
 const provider = new MockKycProvider((result) => processKycWebhookResult(result));
+
+const forcarKycSchema = z.object({
+  forceResult: z.enum(["APPROVED", "REJECTED"]).optional(),
+});
 
 export async function kycRoutes(app: FastifyInstance) {
   app.post("/investors/:id/kyc", async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = request.body as { forceResult?: "APPROVED" | "REJECTED" } | undefined;
+    const parsed = forcarKycSchema.safeParse(request.body ?? {});
+    if (!parsed.success) {
+      return reply.code(400).send({ error: mensagemErroZod(parsed.error) });
+    }
+    const body = parsed.data;
 
     const investor = await prisma.investor.findUnique({ where: { id } });
     if (!investor) {

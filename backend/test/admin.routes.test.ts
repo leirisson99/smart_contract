@@ -60,6 +60,7 @@ describe("rotas administrativas (feature 005)", () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     await prisma.investment.deleteMany();
+    await prisma.propertyCreationAttempt.deleteMany();
     await prisma.property.deleteMany();
     await prisma.kycSubmission.deleteMany();
     await prisma.investor.deleteMany();
@@ -109,9 +110,36 @@ describe("rotas administrativas (feature 005)", () => {
     });
 
     expect(res.statusCode).toBe(201);
-    expect(criarImovelOnChain).toHaveBeenCalledWith({ nome: "Edificio Aurora", valorTotal: 1_000_000n, numeroCotas: 100n });
+    expect(criarImovelOnChain).toHaveBeenCalledWith(
+      { nome: "Edificio Aurora", valorTotal: 1_000_000n, numeroCotas: 100n },
+      expect.any(Function),
+    );
     const property = await prisma.property.findFirstOrThrow();
     expect(property.valorMinimoInvestimento).toBe("10000");
+  });
+
+  it("POST /admin/imoveis registra a tentativa como FAILED com os enderecos ja obtidos quando uma transacao intermediaria falha", async () => {
+    vi.mocked(criarImovelOnChain).mockImplementationOnce(async (_params, onProgress) => {
+      await onProgress?.({ propertyTokenAddress: `0x${"7".repeat(40)}`, txHashCriacao: "0xcriacaohash" });
+      throw new Error("deploy do DividendDistributor revertido");
+    });
+
+    const res = await app.inject({
+      method: "POST",
+      url: "/admin/imoveis",
+      headers: ADMIN_HEADERS,
+      payload: { nome: "Edificio Orfao", valorTotal: "1000000", totalCotas: 100, rendimentoEstimadoAnual: 0.08 },
+    });
+
+    expect(res.statusCode).toBe(502);
+    expect(await prisma.property.count()).toBe(0);
+    const tentativa = await prisma.propertyCreationAttempt.findFirstOrThrow();
+    expect(tentativa).toMatchObject({
+      status: "FAILED",
+      propertyTokenAddress: `0x${"7".repeat(40)}`,
+      dividendDistributorAddress: null,
+      erro: "deploy do DividendDistributor revertido",
+    });
   });
 
   it("POST /admin/imoveis rejeita valorTotal nao divisivel por totalCotas", async () => {
@@ -154,6 +182,43 @@ describe("rotas administrativas (feature 005)", () => {
 
     expect(res.statusCode).toBe(404);
     expect(depositarRendimentoOnChain).not.toHaveBeenCalled();
+  });
+
+  it("POST /admin/imoveis/:id/depositar-rendimento retorna DEPOSITO_EM_ANDAMENTO se ja houver um deposito em andamento para o imovel", async () => {
+    const property = await createProperty();
+    await prisma.property.update({ where: { id: property.id }, data: { rendimentoDepositoTravadoEm: new Date() } });
+
+    const res = await app.inject({
+      method: "POST",
+      url: `/admin/imoveis/${property.id}/depositar-rendimento`,
+      headers: ADMIN_HEADERS,
+      payload: { valor: "100" },
+    });
+
+    expect(res.statusCode).toBe(409);
+    expect(res.json().codigo).toBe("DEPOSITO_EM_ANDAMENTO");
+    expect(depositarRendimentoOnChain).not.toHaveBeenCalled();
+  });
+
+  it("POST /admin/imoveis/:id/depositar-rendimento libera a trava apos concluir, permitindo um novo deposito em seguida", async () => {
+    const property = await createProperty();
+
+    const primeiro = await app.inject({
+      method: "POST",
+      url: `/admin/imoveis/${property.id}/depositar-rendimento`,
+      headers: ADMIN_HEADERS,
+      payload: { valor: "100" },
+    });
+    expect(primeiro.statusCode).toBe(200);
+
+    const segundo = await app.inject({
+      method: "POST",
+      url: `/admin/imoveis/${property.id}/depositar-rendimento`,
+      headers: ADMIN_HEADERS,
+      payload: { valor: "100" },
+    });
+    expect(segundo.statusCode).toBe(200);
+    expect(depositarRendimentoOnChain).toHaveBeenCalledTimes(2);
   });
 
   it("POST /admin/imoveis/:id/depositar-rendimento retorna ERRO_DESCONHECIDO quando a transacao reverte", async () => {

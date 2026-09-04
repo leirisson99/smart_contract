@@ -49,11 +49,20 @@ export type ImovelCriadoOnChain = {
  * `PropertyToken` recem-criado, para que possa tirar snapshot a cada
  * deposito de rendimento.
  */
-export async function criarImovelOnChain(params: {
-  nome: string;
-  valorTotal: bigint;
-  numeroCotas: bigint;
-}): Promise<ImovelCriadoOnChain> {
+export async function criarImovelOnChain(
+  params: {
+    nome: string;
+    valorTotal: bigint;
+    numeroCotas: bigint;
+  },
+  /**
+   * Chamado apos cada transacao confirmar, para que o chamador (rota
+   * /admin/imoveis) persista o progresso incrementalmente - se a transacao
+   * seguinte falhar, os enderecos ja obtidos nao ficam perdidos so na
+   * memoria (ver `PropertyCreationAttempt`).
+   */
+  onProgress?: (progresso: Partial<ImovelCriadoOnChain>) => Promise<void> | void,
+): Promise<ImovelCriadoOnChain> {
   const hash = await gestorWallet.writeContract({
     address: config.propertyFactoryAddress,
     abi: propertyFactoryAbi,
@@ -67,6 +76,7 @@ export async function criarImovelOnChain(params: {
   }[];
   if (!evento) throw new Error("evento ImovelCriado nao encontrado no recibo de PropertyFactory.criarImovel");
   const propertyTokenAddress = evento.args.propertyToken;
+  await onProgress?.({ propertyTokenAddress, txHashCriacao: hash });
 
   const deployHash = await gestorWallet.deployContract({
     abi: dividendDistributorAbi,
@@ -78,6 +88,7 @@ export async function criarImovelOnChain(params: {
   if (!dividendDistributorAddress) {
     throw new Error("deploy do DividendDistributor nao retornou endereco de contrato");
   }
+  await onProgress?.({ propertyTokenAddress, dividendDistributorAddress, txHashCriacao: hash, txHashDistributor: deployHash });
 
   const snapshotRole = (await publicClient.readContract({
     address: propertyTokenAddress,

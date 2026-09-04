@@ -1,6 +1,14 @@
 import type { FastifyInstance } from "fastify";
+import { z } from "zod";
 import { processKycWebhookResult } from "../services/kycWebhookService.js";
 import { exigirSegredoKycWebhook } from "../middleware/webhookAuth.js";
+import { mensagemErroZod } from "../validation.js";
+
+const webhookKycSchema = z.object({
+  providerReference: z.string().min(1, "providerReference e obrigatorio"),
+  result: z.enum(["APPROVED", "REJECTED"], { message: "result e obrigatorio" }),
+  reason: z.string().optional(),
+});
 
 /**
  * Callback do provedor de KYC. O fluxo automatico da POC (MockKycProvider)
@@ -15,13 +23,11 @@ export async function webhookRoutes(app: FastifyInstance) {
   app.addHook("preHandler", exigirSegredoKycWebhook);
 
   app.post("/webhooks/kyc/mock", async (request, reply) => {
-    const body = request.body as
-      | { providerReference?: string; result?: "APPROVED" | "REJECTED"; reason?: string }
-      | undefined;
-
-    if (!body?.providerReference || !body?.result) {
-      return reply.code(400).send({ error: "providerReference e result sao obrigatorios" });
+    const parsed = webhookKycSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: mensagemErroZod(parsed.error) });
     }
+    const body = parsed.data;
 
     await processKycWebhookResult({
       providerReference: body.providerReference,

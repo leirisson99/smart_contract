@@ -2,10 +2,10 @@ import { ApiError, type CodigoErro } from "@/lib/errors";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3333";
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(path: string, init?: RequestInit, baseUrl: string = BASE_URL): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${BASE_URL}${path}`, {
+    response = await fetch(`${baseUrl}${path}`, {
       ...init,
       headers: { "Content-Type": "application/json", ...init?.headers },
     });
@@ -33,18 +33,20 @@ export function apiPost<T>(path: string, payload?: unknown): Promise<T> {
 }
 
 /**
- * Header enviado pelo painel do gestor em toda chamada a `/admin/*`
- * (feature 005 - unico mecanismo de autenticacao/RBAC do backend hoje, ver
- * `docs/backend/features/005-painel-administrativo/plan.md`). So existe uma
- * unica chave/um unico gestor na POC - sem tela de login, ver non-goals da
- * constituicao do projeto.
+ * Chamadas administrativas passam por `app/api/admin/[...path]/route.ts`
+ * (mesma origem, roda no servidor do Next.js) em vez de ir direto ao backend
+ * com a chave `x-admin-api-key` no navegador — essa chave nunca pode chegar
+ * ao cliente, ao contrário do que uma env var `NEXT_PUBLIC_*` faria. Por isso
+ * usa `""` como base (caminho relativo) em vez de `BASE_URL`.
  */
-const ADMIN_HEADERS = { "x-admin-api-key": process.env.NEXT_PUBLIC_ADMIN_API_KEY ?? "" };
+function requestAdmin<T>(path: string, init?: RequestInit): Promise<T> {
+  return request<T>(path, init, "");
+}
 
 export function apiGetAdmin<T>(path: string): Promise<T> {
-  return request<T>(path, { headers: ADMIN_HEADERS });
+  return requestAdmin<T>(`/api${path}`);
 }
 
 export function apiPostAdmin<T>(path: string, payload?: unknown): Promise<T> {
-  return request<T>(path, { method: "POST", headers: ADMIN_HEADERS, body: JSON.stringify(payload ?? {}) });
+  return requestAdmin<T>(`/api${path}`, { method: "POST", body: JSON.stringify(payload ?? {}) });
 }

@@ -1,11 +1,21 @@
-name: CI
+name: Contracts CI
 
 permissions: {}
 
 on:
   push:
+    paths:
+      - "projeto_imobiliaria/**"
+      - ".github/workflows/contracts-ci.yml"
   pull_request:
+    paths:
+      - "projeto_imobiliaria/**"
+      - ".github/workflows/contracts-ci.yml"
   workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: projeto_imobiliaria
 
 jobs:
   check:
